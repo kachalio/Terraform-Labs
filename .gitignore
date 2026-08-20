@@ -27,4 +27,4 @@ terraform.rc
 *.tfplan
 
 # Lock metadata (uncomment only for reusable modules)
-# .terraform.lock.hcl
+.terraform.lock.hcl
