@@ -204,7 +204,7 @@ variable "windows_vm_os_disk_storage_account_type" {
 }
 
 ### Enabling ASR stuff ###
-variable "enable_asr" {
+variable "enable_replication" {
   description = "Flag to enable or disable ASR resources"
   type        = bool
   default     = false

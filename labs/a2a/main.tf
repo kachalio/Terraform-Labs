@@ -119,7 +119,7 @@ module "windows_vm" {
 
 module "asr_enable_protection" {
   source = "../../modules/asr_enable_replication"
-  count = var.enable_asr ? 1 : 0
+  count = var.enable_replication ? 1 : 0
   rsv_name                      = azurerm_recovery_services_vault.asr_vault.name
   source_location               = azurerm_resource_group.source_rg.location
   source_resource_group_name    = azurerm_resource_group.source_rg.name
