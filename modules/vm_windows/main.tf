@@ -25,6 +25,9 @@ resource "azurerm_windows_virtual_machine" "vm" {
   admin_password                  = var.vm_admin_password
   # disable_password_authentication = "false"
   
+  boot_diagnostics {
+    
+  }
 
   source_image_reference {
     publisher = var.windows_vm_image.publisher

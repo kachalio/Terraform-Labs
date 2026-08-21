@@ -57,8 +57,6 @@ module "target_network" {
 }
 
 
-
-
 ### ASR Stuff ###
 
 resource "azurerm_recovery_services_vault" "asr_vault" {
@@ -72,10 +70,11 @@ resource "azurerm_recovery_services_vault" "asr_vault" {
 resource "azurerm_storage_account" "asr_storage" {
   name                     = var.cache_storage_name
   resource_group_name      = azurerm_resource_group.target_rg.name
-  location                 = azurerm_resource_group.target_rg.location
+  location                 = azurerm_resource_group.source_rg.location
   account_tier             = var.cache_storage_account_tier
   account_replication_type = var.cache_storage_replication_type
   tags                     = { "SecurityControl" = "Ignore" }
+  shared_access_key_enabled = true
 }
 
 ### VM Stuff ###
@@ -115,3 +114,18 @@ module "windows_vm" {
     "DeployedByTerraform" = "YouBetcha"
   }
 }
+
+### Enabling ASR Protection Stuff ###
+
+module "asr_enable_protection" {
+  source = "../../modules/asr_enable_replication"
+  count = var.enable_asr ? 1 : 0
+  rsv_name                      = azurerm_recovery_services_vault.asr_vault.name
+  source_location               = azurerm_resource_group.source_rg.location
+  source_resource_group_name    = azurerm_resource_group.source_rg.name
+  target_location               = azurerm_resource_group.target_rg.location
+  target_resource_group_name  = azurerm_resource_group.target_rg.name
+  source_network_id             = module.source_network.vnet_id
+  target_network_id             = module.target_network.vnet_id
+}
+

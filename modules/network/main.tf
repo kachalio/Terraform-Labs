@@ -31,6 +31,9 @@ resource "azurerm_public_ip" "nat_gateway_pip" {
   resource_group_name = var.rg_name
   allocation_method   = "Static"
   sku                 = "Standard"
+  ip_tags = { "FirstPartyUsage" = "/Unprivileged" }
+  tags = var.tags
+  zones = []
 
 }
 

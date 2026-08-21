@@ -203,3 +203,9 @@ variable "windows_vm_os_disk_storage_account_type" {
   default     = "StandardSSD_LRS"
 }
 
+### Enabling ASR stuff ###
+variable "enable_asr" {
+  description = "Flag to enable or disable ASR resources"
+  type        = bool
+  default     = false
+}
