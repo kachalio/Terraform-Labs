@@ -136,13 +136,13 @@ variable "linux_vm_count" {
 variable "linux_vm_name_prefix" {
   description = "The prefix for the Linux VM name"
   type        = string
-  default     = "tf-asr-linux-vm"
+  default     = "lin-vm"
 }
 
 variable "vm_size" {
   description = "The size of the virtual machine"
   type        = string
-  default     = "Standard_B1s"
+  default     = "Standard_D2s_v5"
 }
 
 variable "linux_vm_image" {
@@ -172,7 +172,7 @@ variable "linux_vm_os_disk_storage_account_type" {
 variable "windows_vm_name_prefix" {
   description = "The prefix for the Windows VM name"
   type        = string
-  default     = "tf-asr-windows-vm"
+  default     = "win-vm"
 }
 
 variable "windows_vm_count" {
