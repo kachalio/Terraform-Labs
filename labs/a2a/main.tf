@@ -12,13 +12,13 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "source_rg" {
-  name     = "Lab-ASR-Source"
-  location = "eastus2"
+  name     = var.source_rg_name
+  location = var.source_location
 }
 
 resource "azurerm_resource_group" "target_rg" {
-  name     = "Lab-ASR-Target"
-  location = "westus2"
+  name     = var.target_rg_name
+  location = var.target_location
 }
 
 ### Network Stuff ###
@@ -28,11 +28,28 @@ module "source_network" {
   rg_name                 = azurerm_resource_group.source_rg.name
   rg_location             = azurerm_resource_group.source_rg.location
 
-  vnet_name               = "Lab-ASR-Source-VNet"
-  vnet_address_space      = ["10.0.0.0/16"]
+  vnet_name               = var.source_vnet_name
+  vnet_address_space      = var.source_vnet_address_space
   
-  subnet_name             = "default"
-  subnet_address_prefixes = ["10.0.0.0/24"]
+  subnet_name             = var.source_subnet_name
+  subnet_address_prefixes = var.source_subnet_address_prefixes
+  
+  tags = {
+    "DeployedByTerraform" = "YouBetcha"
+  }
+}
+
+module "target_network" {
+  source = "../../modules/network"
+
+  rg_name                 = azurerm_resource_group.target_rg.name
+  rg_location             = azurerm_resource_group.target_rg.location
+
+  vnet_name               = var.target_vnet_name
+  vnet_address_space      = var.target_vnet_address_space
+  
+  subnet_name             = var.target_subnet_name
+  subnet_address_prefixes = var.target_subnet_address_prefixes
   
   tags = {
     "DeployedByTerraform" = "YouBetcha"
@@ -40,76 +57,46 @@ module "source_network" {
 }
 
 
-### Other Stuff ###
-
-# resource "azurerm_recovery_services_vault" "asr_vault" {
-#   name                = var.rsv_name
-#   location            = azurerm_resource_group.target_rg.location
-#   resource_group_name = azurerm_resource_group.target_rg.name
-#   sku                 = var.rsv_sku
-#   storage_mode_type   = var.rsv_storage_mode_type
-# }
-
-# resource "azurerm_storage_account" "asr_storage" {
-#   name                     = var.cache_storage_name
-#   resource_group_name      = azurerm_resource_group.target_rg.name
-#   location                 = var.source_region
-#   account_tier             = var.cache_storage_account_tier
-#   account_replication_type = var.cache_storage_replication_type
-#   tags                     = { "SecurityControl" = "Ignore" }
-# }
-
-# resource "azurerm_public_ip" "vm_pip" {
-#   count               = 2
-#   name                = "vm${count.index}-pip"
-#   location            = azurerm_resource_group.source_rg.location
-#   resource_group_name = azurerm_resource_group.source_rg.name
-#   allocation_method   = "Dynamic"
-#   sku                 = "Basic"
-# }
-
-# resource "azurerm_network_interface" "vm_nic" {
-#   count               = 2
-#   name                = "vm${count.index}-nic"
-#   location            = azurerm_resource_group.source_rg.location
-#   resource_group_name = azurerm_resource_group.source_rg.name
 
 
-#   ip_configuration {
-#     name                          = "internal"
-#     subnet_id                     = azurerm_subnet.source_subnet.id
-#     private_ip_address_allocation = "Dynamic"
-#     public_ip_address_id          = azurerm_public_ip.vm_pip[count.index].id
-#   }
-# }
+### ASR Stuff ###
 
-# resource "azurerm_linux_virtual_machine" "linux_vm" {
-#   name                = "${var.vm_name_prefix}-0"
-#   resource_group_name = azurerm_resource_group.source_rg.name
-#   location            = azurerm_resource_group.source_rg.location
-#   size                = var.vm_size
-#   network_interface_ids = [
-#     azurerm_network_interface.vm_nic[0].id,
-#   ]
-#   admin_username                  = var.vm_admin_username
-#   admin_password                  = var.vm_admin_password
-#   disable_password_authentication = "false"
-#   depends_on                      = [azurerm_network_interface.vm_nic]
+resource "azurerm_recovery_services_vault" "asr_vault" {
+  name                = var.rsv_name
+  location            = azurerm_resource_group.target_rg.location
+  resource_group_name = azurerm_resource_group.target_rg.name
+  sku                 = "Standard"
+  storage_mode_type   = var.rsv_storage_mode_type
+}
 
-#   source_image_reference {
-#     publisher = var.linux_vm_image.publisher
-#     offer     = var.linux_vm_image.offer
-#     sku       = var.linux_vm_image.sku
-#     version   = var.linux_vm_image.version
-#   }
+resource "azurerm_storage_account" "asr_storage" {
+  name                     = var.cache_storage_name
+  resource_group_name      = azurerm_resource_group.target_rg.name
+  location                 = azurerm_resource_group.target_rg.location
+  account_tier             = var.cache_storage_account_tier
+  account_replication_type = var.cache_storage_replication_type
+  tags                     = { "SecurityControl" = "Ignore" }
+}
 
-#   os_disk {
-#     caching              = "ReadWrite"
-#     storage_account_type = var.vm_os_disk_storage_account_type
-#   }
+### VM Stuff ###
 
-#   tags = var.vm_tags
-# }
+module "linux_vm" {
+  source = "../../modules/vm_linux"
+  count = var.linux_vm_count
+  vm_name                     = "${var.linux_vm_name_prefix}-1"
+  resource_group_name         = azurerm_resource_group.source_rg.name
+  location                    = azurerm_resource_group.source_rg.location
+  linux_vm_size               = var.vm_size
+  subnet_id                   = module.source_network.subnet_id
+  vm_admin_username           = var.vm_admin_username
+  vm_admin_password           = var.vm_admin_password
+  linux_vm_image              = var.linux_vm_image
+  vm_os_disk_storage_account_type = var.linux_vm_os_disk_storage_account_type
+
+  tags = {
+    "DeployedByTerraform" = "YouBetcha"
+  }
+}
 
 # resource "azurerm_windows_virtual_machine" "windows_vm" {
 #   name                                                   = "${var.vm_name_prefix}-1"
