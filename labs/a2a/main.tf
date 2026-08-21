@@ -98,34 +98,20 @@ module "linux_vm" {
   }
 }
 
-# resource "azurerm_windows_virtual_machine" "windows_vm" {
-#   name                                                   = "${var.vm_name_prefix}-1"
-#   resource_group_name                                    = azurerm_resource_group.source_rg.name
-#   location                                               = azurerm_resource_group.source_rg.location
-#   size                                                   = var.vm_size
-#   admin_username                                         = var.vm_admin_username
-#   admin_password                                         = var.vm_admin_password
-#   bypass_platform_safety_checks_on_user_schedule_enabled = true
-#   patch_mode                                             = "AutomaticByPlatform"
-#   network_interface_ids = [
-#     azurerm_network_interface.vm_nic[1].id,
-#   ]
-#   os_disk {
-#     caching              = "ReadWrite"
-#     storage_account_type = var.vm_os_disk_storage_account_type
-#   }
+module "windows_vm" {
+  source = "../../modules/vm_windows"
+  count = var.windows_vm_count
+  vm_name                     = "${var.windows_vm_name_prefix}-1"
+  resource_group_name         = azurerm_resource_group.source_rg.name
+  location                    = azurerm_resource_group.source_rg.location
+  windows_vm_size             = var.vm_size
+  subnet_id                   = module.source_network.subnet_id
+  vm_admin_username           = var.vm_admin_username
+  vm_admin_password           = var.vm_admin_password
+  windows_vm_image            = var.windows_vm_image
+  vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
 
-
-#   source_image_reference {
-#     publisher = var.windows_vm_image.publisher
-#     offer     = var.windows_vm_image.offer
-#     sku       = var.windows_vm_image.sku
-#     version   = var.windows_vm_image.version
-#   }
-
-#   boot_diagnostics {
-
-#   }
-
-#   tags = var.vm_tags
-# }
+  tags = {
+    "DeployedByTerraform" = "YouBetcha"
+  }
+}

@@ -1,3 +1,4 @@
+### Resource Group ###
 variable "source_rg_name" {
   description = "The name of the source resource group"
   type        = string
@@ -10,19 +11,19 @@ variable "source_location" {
   default     = "eastus2"
 }
 
-
 variable "target_rg_name" {
   description = "The name of the target resource group"
   type        = string
   default     = "Lab-ASR-Target"
 }
 
-
 variable "target_location" {
   description = "The region of the target resource group"
   type        = string
   default     = "westus2"
 }
+
+### Virtual Network ###
 
 variable "source_vnet_name" {
   description = "The name of the source virtual network"
@@ -71,6 +72,8 @@ variable "target_subnet_address_prefixes" {
   default     = ["10.1.0.0/24"]
 }
 
+### Recovery Services Vault ###
+
 variable "rsv_name" {
   description = "The name of the Recovery Services Vault"
   type        = string
@@ -88,6 +91,8 @@ variable "rsv_storage_mode_type" {
   type        = string
   default     = "LocallyRedundant"
 }
+
+### Cache Storage Account ###
 
 variable "cache_storage_name" {
   description = "The name of the cache storage account"
@@ -107,6 +112,21 @@ variable "cache_storage_replication_type" {
   default     = "LRS"
 }
 
+### Shared VM ###
+
+variable "vm_admin_username" {
+  description = "The admin username for the virtual machine"
+  type        = string
+}
+
+variable "vm_admin_password" {
+  description = "The admin password for the virtual machine"
+  type        = string
+  sensitive   = true
+}
+
+### Linux VM ###
+
 variable "linux_vm_count" {
   description = "The number of Linux VMs to create"
   type        = number
@@ -123,18 +143,6 @@ variable "vm_size" {
   description = "The size of the virtual machine"
   type        = string
   default     = "Standard_B1s"
-}
-
-variable "vm_admin_username" {
-  description = "The admin username for the virtual machine"
-  type        = string
-  default     = "azureuser"
-}
-
-variable "vm_admin_password" {
-  description = "The admin password for the virtual machine"
-  type        = string
-  sensitive   = true
 }
 
 variable "linux_vm_image" {
@@ -159,8 +167,39 @@ variable "linux_vm_os_disk_storage_account_type" {
   default     = "StandardSSD_LRS"
 }
 
+### Windows VM ###
+
 variable "windows_vm_name_prefix" {
   description = "The prefix for the Windows VM name"
   type        = string
   default     = "tf-asr-windows-vm"
 }
+
+variable "windows_vm_count" {
+  description = "The number of Windows VMs to create"
+  type        = number
+  default     = 1
+}
+
+variable "windows_vm_image" {
+  description = "The image reference for the Windows VM"
+  type = object({
+    publisher = string
+    offer     = string
+    sku       = string
+    version   = string
+  })
+  default = {
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2019-Datacenter"
+    version   = "latest"
+  }
+}
+
+variable "windows_vm_os_disk_storage_account_type" {
+  description = "The storage account type for the Windows VM OS disk"
+  type        = string
+  default     = "StandardSSD_LRS"
+}
+
