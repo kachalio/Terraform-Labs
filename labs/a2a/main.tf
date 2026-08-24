@@ -119,7 +119,7 @@ module "windows_vm" {
 
 module "asr_enable_protection" {
   source = "../../modules/asr_enable_replication"
-  count = var.enable_replication ? 1 : 0
+  
   rsv_name                      = azurerm_recovery_services_vault.asr_vault.name
   source_location               = azurerm_resource_group.source_rg.location
   source_resource_group_name    = azurerm_resource_group.source_rg.name
@@ -137,16 +137,16 @@ resource "azurerm_site_recovery_replicated_vm" "linux_vm_replication" {
   }
   
   name                = each.value.vm_name
-  resource_group_name = azurerm_resource_group.source_rg.name
+  resource_group_name = azurerm_resource_group.target_rg.name
   recovery_vault_name = azurerm_recovery_services_vault.asr_vault.name
-  source_recovery_fabric_name = module.asr_enable_protection[0].source_recovery_fabric_name
+  source_recovery_fabric_name = module.asr_enable_protection.source_recovery_fabric_name
   source_vm_id        = each.value.vm_id
-  recovery_replication_policy_id = module.asr_enable_protection[0].azurerm_site_recovery_replication_policy_id
-  source_recovery_protection_container_name = module.asr_enable_protection[0].source_container_name
+  recovery_replication_policy_id = module.asr_enable_protection.azurerm_site_recovery_replication_policy_id
+  source_recovery_protection_container_name = module.asr_enable_protection.source_container_name
 
   target_resource_group_id = azurerm_resource_group.target_rg.id
-  target_recovery_fabric_id = module.asr_enable_protection[0].target_recovery_fabric_id
-  target_recovery_protection_container_id = module.asr_enable_protection[0].target_recovery_protection_container_id
+  target_recovery_fabric_id = module.asr_enable_protection.target_recovery_fabric_id
+  target_recovery_protection_container_id = module.asr_enable_protection.target_recovery_protection_container_id
   
   managed_disk{
     disk_id = each.value.os_disk_id
@@ -162,5 +162,9 @@ resource "azurerm_site_recovery_replicated_vm" "linux_vm_replication" {
       target_subnet_name = module.target_network.subnet_name
     }
   }
+
+  depends_on = [
+    module.asr_enable_protection
+  ]
 
 }
