@@ -203,6 +203,7 @@ variable "windows_vm_os_disk_storage_account_type" {
   default     = "Standard_LRS"
 }
 
+
 ### Enabling ASR stuff ###
 variable "enable_replication" {
   description = "Flag to enable or disable ASR resources"
