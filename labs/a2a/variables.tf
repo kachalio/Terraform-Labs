@@ -164,7 +164,7 @@ variable "linux_vm_image" {
 variable "linux_vm_os_disk_storage_account_type" {
   description = "The storage account type for the Linux VM OS disk"
   type        = string
-  default     = "StandardSSD_LRS"
+  default     = "Standard_LRS"
 }
 
 ### Windows VM ###
@@ -200,7 +200,7 @@ variable "windows_vm_image" {
 variable "windows_vm_os_disk_storage_account_type" {
   description = "The storage account type for the Windows VM OS disk"
   type        = string
-  default     = "StandardSSD_LRS"
+  default     = "Standard_LRS"
 }
 
 ### Enabling ASR stuff ###

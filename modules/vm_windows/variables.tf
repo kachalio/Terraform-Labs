@@ -55,7 +55,7 @@ variable "windows_vm_image" {
 variable "vm_os_disk_storage_account_type" {
   description = "The storage account type for the OS disk"
   type        = string
-  default     = "StandardSSD_LRS"
+  default     = "Standard_LRS"
 }
 
 
