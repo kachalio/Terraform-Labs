@@ -30,6 +30,8 @@ module "source_network" {
 
   vnet_name               = var.source_vnet_name
   vnet_address_space      = var.source_vnet_address_space
+
+  security_rules_list = var.security_rules_list
   
   subnet_name             = var.source_subnet_name
   subnet_address_prefixes = var.source_subnet_address_prefixes
@@ -47,6 +49,8 @@ module "target_network" {
 
   vnet_name               = var.target_vnet_name
   vnet_address_space      = var.target_vnet_address_space
+
+  security_rules_list = var.security_rules_list
   
   subnet_name             = var.target_subnet_name
   subnet_address_prefixes = var.target_subnet_address_prefixes
@@ -65,6 +69,11 @@ resource "azurerm_recovery_services_vault" "asr_vault" {
   resource_group_name = azurerm_resource_group.target_rg.name
   sku                 = "Standard"
   storage_mode_type   = var.rsv_storage_mode_type
+
+  identity {
+    type = "SystemAssigned"
+  }
+
 }
 
 resource "azurerm_storage_account" "asr_storage" {

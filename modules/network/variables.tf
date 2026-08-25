@@ -31,6 +31,21 @@ variable "subnet_address_prefixes" {
   default     = ["10.0.0.0/24"]
 }
 
+variable "security_rules_list" {
+  description = "List of security rules for the target NSG"
+  type = list(object({
+    name                       = string
+    priority                   = number
+    direction                  = string
+    access                     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = string
+    destination_address_prefix = string
+  }))
+}
+
 
 variable "tags" {
   description = "A map of tags to assign to the resources"

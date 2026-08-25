@@ -72,6 +72,100 @@ variable "target_subnet_address_prefixes" {
   default     = ["10.1.0.0/24"]
 }
 
+variable "security_rules_list" {
+  description = "List of security rules for the target NSG"
+  type = list(object({
+    name                       = string
+    priority                   = number
+    direction                  = string
+    access                     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = string
+    destination_address_prefix = string
+  }))
+  default = [
+    {
+      name                       = "AllowSSH"
+      priority                   = 100
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "22"
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    },
+    {
+      name                       = "AllowRDP"
+      priority                   = 110
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "3389"
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    },
+    {
+      name                       = "AllowStorage"
+      priority                   = 120
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "Storage"
+    },
+    {
+      name                       = "AllowEntra"
+      priority                   = 130
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "AzureActiveDirectory"
+    },
+    {
+      name                       = "AllowEventsHub"
+      priority                   = 140
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "EventHub"
+    },
+    {
+      name                       = "AllowASR"
+      priority                   = 150
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "AzureSiteRecovery"
+    },
+    {
+      name                       = "AllowGuestAndHybridManagement"
+      priority                   = 160
+      direction                  = "Outbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "*"
+      destination_address_prefix = "GuestAndHybridManagement"
+    }
+  ]
+}
+
 ### Recovery Services Vault ###
 
 variable "rsv_name" {
