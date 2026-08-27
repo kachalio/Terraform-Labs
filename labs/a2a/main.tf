@@ -86,6 +86,18 @@ resource "azurerm_storage_account" "asr_storage" {
   shared_access_key_enabled = true
 }
 
+resource "azurerm_role_assignment" "asr_vault_storage_blob_data_contributor" {
+  scope                = azurerm_storage_account.asr_storage.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "asr_vault_storage_blob_contributor" {
+  scope                = azurerm_storage_account.asr_storage.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
+}
+
 ### VM Stuff ###
 
 module "linux_vm" {
