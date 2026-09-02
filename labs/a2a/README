@@ -1,15 +1,18 @@
-# Terraform Lab
+# Description
+This creates a basic lab environment for Azure to Azure replication scenarios.
 
-This lab uses Terraform to provision and manage infrastructure.
+## Resources Created
+- Resource Groups (Source and Target)
+- Virtual Networks (Source and Target)
+- Network Gateway for public access
+- Windows VM(s)
+- Linux VM(s)
+- Recovery Services Vault
 
-## Prerequisites
-
-- [Terraform](https://developer.hashicorp.com/terraform/install)
-- Access to the target cloud or infrastructure provider
-- Provider credentials configured in your environment
-- Any required CLI tools for the target provider
 
 ## Usage
+
+### Setup
 
 1. Open a terminal in this lab directory.
 
@@ -19,56 +22,97 @@ This lab uses Terraform to provision and manage infrastructure.
 	terraform init
 	```
 
-3. Review and format the configuration:
 
-	```bash
-	terraform fmt -recursive
-	terraform validate
-	```
-
-4. Create a plan:
-
-	```bash
-	terraform plan -out=tfplan
-	```
-
-5. Apply the plan:
-
-	```bash
-	terraform apply tfplan
-	```
-
-6. Review any Terraform outputs:
-
-	```bash
-	terraform output
-	```
 
 ## Variables
 
-Set required values in a local `terraform.tfvars` file:
+See ./variables.tf for the full list of variables.  Here's a list of the required and commonly used ones to get you started.
+
+| Variable Name | Purpose | Type | Example Value |
+| ------------- | ------- | ---- | ------------- |
+| enable_replication | boolean used to decide whether to enable replication or not for your VMs | boolean | true (default = false) |
+| vm_admin_username | This is the username that will be configured on your Linux and Windows VMs | string | azureuser |
+| vm_admin_password | The password to use with the vm_admin_username to login to your linux and windows machines | string/secure string | $3cUR3P@$$w0rd |
+| source_rg_name | The resource group name for your source VMs and associated resources | string | Lab-ASR-SourceRG |
+| source_location | The resource location/region used for your source side resources | string | eastus2 |
+| target_location | The resource location/region used for your target side resources | string | eastus2 |
+| target_location | The resource location/region used for your target side resources | string | eastus2 |
+
+### Using and Setting Variables
+
+Set variables in a local `terraform.tfvars` file:
 
 ```hcl
-# Example
-# resource_name = "example"
-# location      = "example-region"
+source_rg_name="Lab-ASR-SourceRG" 
+target_rg_name="Lab-ASR-TargetRG" 
+enable_replication=false 
+target_location="eastus2"
+source_location="westus2"
 ```
+This file must be placed in the same directory as main.tf, or the path specified manually using the `-var-file` parameter.
 
 Alternatively, pass variables on the command line:
 
 ```bash
-terraform plan -var="resource_name=example"
+terraform plan -var source_rg_name="Example-RG"
+```
+or
+```bash
+$sourceResourceGroupName = "Example-RG"
+terraform plan -var source_rg_name=$sourceResourceGroupName
+```
+
+### Credentials
+
+You can use the following to set a credential and pass to terraform
+
+```bash
+$vm_credential = $(Get-Credential azureuser)
+terraform plan -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password
 ```
 
 Do not commit credentials, secrets, state files, or sensitive variable files to source control.
 
+### Deploy the Lab
+
+Once variables are set, you can do the following
+
+
+1. See what will be created without applying anything.  Useful for testing:
+
+	```bash
+	terraform plan -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
+	```
+
+2. Apply the changes outputs:
+
+	```bash
+	terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
+	```
+This will create resources, but will not enable replication.
+
+### Enable Replication
+Change the enable_replication variable to `true`
+```bash
+terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=true
+```
+**Note** - By default, the enable_replication variable is set to `false`.  If you enable replication, then run the `terraform apply` command again but don't specify `enable_replciation=true`, it will disable replication.
+
+### Disable Replication
+Change the enable_replication variable to `false`
+```bash
+terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
+```
+If replication was previously enabled and run `terraform apply` again with this variable set to `false`, it will disable replication
+
 ## Cleanup
+
+**Important** Make sure to disable replication (see section above) before performing the below operations.
 
 Destroy resources after completing the lab to avoid unnecessary costs:
 
 ```bash
-terraform plan -destroy -out=destroy.tfplan
-terraform apply destroy.tfplan
+terraform destroy -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
 ```
 
 ## Troubleshooting
@@ -77,3 +121,9 @@ terraform apply destroy.tfplan
 - Run `terraform validate` to check the configuration.
 - Verify credentials and provider permissions if authentication fails.
 - Review the plan carefully before applying or destroying resources.
+
+## Out of Scope
+- Failover, failback, and reprotect operations
+- Protection of clusters
+- I'm sure many other scenarios
+- This is supposed to be the most basic implementation of A2A to use for testing.  Feel free to customize as needed.
