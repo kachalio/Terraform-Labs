@@ -1,0 +1,79 @@
+# Terraform Lab
+
+This lab uses Terraform to provision and manage infrastructure.
+
+## Prerequisites
+
+- [Terraform](https://developer.hashicorp.com/terraform/install)
+- Access to the target cloud or infrastructure provider
+- Provider credentials configured in your environment
+- Any required CLI tools for the target provider
+
+## Usage
+
+1. Open a terminal in this lab directory.
+
+2. Initialize Terraform:
+
+	```bash
+	terraform init
+	```
+
+3. Review and format the configuration:
+
+	```bash
+	terraform fmt -recursive
+	terraform validate
+	```
+
+4. Create a plan:
+
+	```bash
+	terraform plan -out=tfplan
+	```
+
+5. Apply the plan:
+
+	```bash
+	terraform apply tfplan
+	```
+
+6. Review any Terraform outputs:
+
+	```bash
+	terraform output
+	```
+
+## Variables
+
+Set required values in a local `terraform.tfvars` file:
+
+```hcl
+# Example
+# resource_name = "example"
+# location      = "example-region"
+```
+
+Alternatively, pass variables on the command line:
+
+```bash
+terraform plan -var="resource_name=example"
+```
+
+Do not commit credentials, secrets, state files, or sensitive variable files to source control.
+
+## Cleanup
+
+Destroy resources after completing the lab to avoid unnecessary costs:
+
+```bash
+terraform plan -destroy -out=destroy.tfplan
+terraform apply destroy.tfplan
+```
+
+## Troubleshooting
+
+- Run `terraform init -upgrade` after changing provider versions.
+- Run `terraform validate` to check the configuration.
+- Verify credentials and provider permissions if authentication fails.
+- Review the plan carefully before applying or destroying resources.

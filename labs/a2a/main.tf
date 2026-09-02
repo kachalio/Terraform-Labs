@@ -189,3 +189,44 @@ resource "azurerm_site_recovery_replicated_vm" "linux_vm_replication" {
   ]
 
 }
+
+
+resource "azurerm_site_recovery_replicated_vm" "windows_vm_replication" {
+  # count = var.enable_replication ? var.linux_vm_count : 0
+  for_each = {
+    for vm in module.windows_vm : vm.vm_name => vm
+    if var.enable_replication
+  }
+  
+  name                = each.value.vm_name
+  resource_group_name = azurerm_resource_group.target_rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.asr_vault.name
+  source_recovery_fabric_name = module.asr_enable_protection.source_recovery_fabric_name
+  source_vm_id        = each.value.vm_id
+  recovery_replication_policy_id = module.asr_enable_protection.azurerm_site_recovery_replication_policy_id
+  source_recovery_protection_container_name = module.asr_enable_protection.source_container_name
+
+  target_resource_group_id = azurerm_resource_group.target_rg.id
+  target_recovery_fabric_id = module.asr_enable_protection.target_recovery_fabric_id
+  target_recovery_protection_container_id = module.asr_enable_protection.target_recovery_protection_container_id
+  
+  managed_disk{
+    disk_id = each.value.os_disk_id
+    staging_storage_account_id = azurerm_storage_account.asr_storage.id
+    target_resource_group_id = azurerm_resource_group.target_rg.id
+    target_disk_type = var.windows_vm_os_disk_storage_account_type
+    target_replica_disk_type = var.windows_vm_os_disk_storage_account_type
+  }
+  network_interface{
+    source_network_interface_id = each.value.nic_id
+    ip_configuration{
+      name = "${each.value.vm_name}-ipconfig1"
+      target_subnet_name = module.target_network.subnet_name
+    }
+  }
+
+  depends_on = [
+    module.asr_enable_protection
+  ]
+
+}
