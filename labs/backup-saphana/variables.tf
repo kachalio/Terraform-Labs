@@ -2,7 +2,7 @@
 variable "source_rg_name" {
   description = "The name of the source resource group"
   type        = string
-  default     = "Lab-ASR-Source"
+  default     = "Lab-Backup-HANA"
 }
 
 variable "source_location" {
@@ -11,24 +11,12 @@ variable "source_location" {
   default     = "eastus2"
 }
 
-variable "target_rg_name" {
-  description = "The name of the target resource group"
-  type        = string
-  default     = "Lab-ASR-Target"
-}
-
-variable "target_location" {
-  description = "The region of the target resource group"
-  type        = string
-  default     = "westus2"
-}
-
 ### Virtual Network ###
 
 variable "source_vnet_name" {
   description = "The name of the source virtual network"
   type        = string
-  default     = "Lab-ASR-Source-VNet"
+  default     = "Lab-Backup-HANA-VNet"
 }
 
 variable "source_vnet_address_space" {
@@ -47,29 +35,6 @@ variable "source_subnet_address_prefixes" {
   description = "The address prefixes of the source subnet"
   type        = list(string)
   default     = ["10.0.0.0/24"]
-}
-
-variable "target_vnet_name" {
-  description = "The name of the target virtual network"
-  type        = string
-  default     = "Lab-ASR-Target-VNet"
-}
-variable "target_vnet_address_space" {
-  description = "The address space of the target virtual network"
-  type        = list(string)
-  default     = ["10.1.0.0/16"]
-}
-
-variable "target_subnet_name" {
-  description = "The name of the target subnet"
-  type        = string
-  default     = "default"
-}
-
-variable "target_subnet_address_prefixes" {
-  description = "The address prefixes of the target subnet"
-  type        = list(string)
-  default     = ["10.1.0.0/24"]
 }
 
 variable "security_rules_list" {
@@ -129,39 +94,6 @@ variable "security_rules_list" {
       destination_port_range     = "443"
       source_address_prefix      = "*"
       destination_address_prefix = "AzureActiveDirectory"
-    },
-    {
-      name                       = "AllowEventsHub"
-      priority                   = 140
-      direction                  = "Outbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      source_port_range          = "*"
-      destination_port_range     = "443"
-      source_address_prefix      = "*"
-      destination_address_prefix = "EventHub"
-    },
-    {
-      name                       = "AllowASR"
-      priority                   = 150
-      direction                  = "Outbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      source_port_range          = "*"
-      destination_port_range     = "443"
-      source_address_prefix      = "*"
-      destination_address_prefix = "AzureSiteRecovery"
-    },
-    {
-      name                       = "AllowGuestAndHybridManagement"
-      priority                   = 160
-      direction                  = "Outbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      source_port_range          = "*"
-      destination_port_range     = "443"
-      source_address_prefix      = "*"
-      destination_address_prefix = "GuestAndHybridManagement"
     }
   ]
 }
@@ -171,7 +103,7 @@ variable "security_rules_list" {
 variable "rsv_name" {
   description = "The name of the Recovery Services Vault"
   type        = string
-  default     = "tf-asr-vault"
+  default     = "backup-hana"
 }
 
 variable "rsv_sku" {
@@ -184,26 +116,6 @@ variable "rsv_storage_mode_type" {
   description = "The storage mode type of the Recovery Services Vault"
   type        = string
   default     = "LocallyRedundant"
-}
-
-### Cache Storage Account ###
-
-variable "cache_storage_name" {
-  description = "The name of the cache storage account"
-  type        = string
-  default     = "tfasrcachestorage"
-}
-
-variable "cache_storage_account_tier" {
-  description = "The tier of the cache storage account"
-  type        = string
-  default     = "Standard"
-}
-
-variable "cache_storage_replication_type" {
-  description = "The replication type of the cache storage account"
-  type        = string
-  default     = "LRS"
 }
 
 ### Shared VM ###
@@ -248,9 +160,9 @@ variable "linux_vm_image" {
     version   = string
   })
   default = {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
+    publisher = "SUSE"
+    offer     = "sles-15-sp5"
+    sku       = "gen2"
     version   = "latest"
   }
 }
@@ -295,12 +207,4 @@ variable "windows_vm_os_disk_storage_account_type" {
   description = "The storage account type for the Windows VM OS disk"
   type        = string
   default     = "Standard_LRS"
-}
-
-
-### Enabling ASR stuff ###
-variable "enable_replication" {
-  description = "Flag to enable or disable ASR resources"
-  type        = bool
-  default     = false
 }
