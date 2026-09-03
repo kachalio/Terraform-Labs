@@ -1,0 +1,33 @@
+param(
+	[Parameter(Mandatory)] [string] $ResourceGroup,
+	[Parameter(Mandatory)] [string] $VmName,
+	[Parameter(Mandatory)] [string] $VnetName,
+	[Parameter(Mandatory)] [string] $SubnetName,
+	[Parameter(Mandatory)] [string] $AdminUsername,
+	[Parameter(Mandatory)] [securestring] $AdminPassword
+)
+
+$password = [System.Net.NetworkCredential]::new('', $AdminPassword).Password
+
+az vm create `
+	--resource-group $ResourceGroup `
+	--name $VmName `
+	--image Win2022Datacenter `
+	--size Standard_D2s_v5 `
+	--admin-username $AdminUsername `
+	--admin-password $password `
+	--vnet-name $VnetName `
+	--subnet $SubnetName
+
+az vm create `
+	--resource-group $ResourceGroup `
+	--name "$VmName-suse" `
+	--image SUSE:sles-15-sp5:gen2:latest `
+	--size Standard_D2s_v5 `
+	--admin-username $AdminUsername `
+	--admin-password $password `
+	--authentication-type password `
+	--vnet-name $VnetName `
+	--subnet $SubnetName
+
+	
