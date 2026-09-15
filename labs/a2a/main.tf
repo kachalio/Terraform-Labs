@@ -103,7 +103,7 @@ resource "azurerm_role_assignment" "asr_vault_storage_blob_contributor" {
 module "linux_vm" {
   source = "../../modules/vm_linux"
   count = var.linux_vm_count
-  vm_name                     = "${var.linux_vm_name_prefix}-1"
+  vm_name                     = "${var.linux_vm_name_prefix}-${count.index + 1}"
   resource_group_name         = azurerm_resource_group.source_rg.name
   location                    = azurerm_resource_group.source_rg.location
   linux_vm_size               = var.vm_size
@@ -121,7 +121,7 @@ module "linux_vm" {
 module "windows_vm" {
   source = "../../modules/vm_windows"
   count = var.windows_vm_count
-  vm_name                     = "${var.windows_vm_name_prefix}-1"
+  vm_name                     = "${var.windows_vm_name_prefix}-${count.index + 1}"
   resource_group_name         = azurerm_resource_group.source_rg.name
   location                    = azurerm_resource_group.source_rg.location
   windows_vm_size             = var.vm_size
