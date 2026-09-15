@@ -208,3 +208,11 @@ variable "windows_vm_os_disk_storage_account_type" {
   type        = string
   default     = "Standard_LRS"
 }
+
+
+### HANA Stuff ###
+variable "hana_master_password" {
+  description = "The master password for the SAP HANA instance"
+  type        = string
+  sensitive   = true
+}
