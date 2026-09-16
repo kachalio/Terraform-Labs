@@ -131,6 +131,12 @@ variable "vm_admin_password" {
   sensitive   = true
 }
 
+variable "create_public_ip" {
+  description = "Whether to create and attach a public IP address to the VM"
+  type        = bool
+  default     = false
+}
+
 ### Linux VM ###
 
 variable "linux_vm_count" {
@@ -146,7 +152,7 @@ variable "linux_vm_name_prefix" {
 }
 
 variable "vm_size" {
-  description = "The size of the virtual machine"
+  description = "The size of the virtual machine.  You will need a SKU with more than 8 GBs of Memory for HANA instances"
   type        = string
   default     = "Standard_D2s_v5"
 }

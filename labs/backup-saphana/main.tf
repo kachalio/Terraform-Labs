@@ -52,6 +52,7 @@ module "linux_vm" {
   vm_admin_password           = var.vm_admin_password
   linux_vm_image              = var.linux_vm_image
   vm_os_disk_storage_account_type = var.linux_vm_os_disk_storage_account_type
+  create_public_ip            = var.create_public_ip
 
   tags = {
     "DeployedByTerraform" = "YouBetcha"
@@ -89,7 +90,7 @@ fail() {
 on_error() {
     local exit_code=$?
     printf '[ERROR] Command failed on line %s (exit code %s): %s\n' \
-        "$\{BASH_LINENO[0]}" "$exit_code" "$BASH_COMMAND" >&2
+        "$${BASH_LINENO[0]}" "$exit_code" "$BASH_COMMAND" >&2
     exit "$exit_code"
 }
 
@@ -169,6 +170,7 @@ module "windows_vm" {
   vm_admin_password           = var.vm_admin_password
   windows_vm_image            = var.windows_vm_image
   vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
+  create_public_ip            = var.create_public_ip
 
   tags = {
     "DeployedByTerraform" = "YouBetcha"
