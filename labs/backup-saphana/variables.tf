@@ -190,7 +190,7 @@ variable "windows_vm_name_prefix" {
 variable "windows_vm_count" {
   description = "The number of Windows VMs to create"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "windows_vm_image" {
