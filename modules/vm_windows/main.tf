@@ -1,3 +1,17 @@
+resource "azurerm_public_ip" "vm_public_ip" {
+  count = var.create_public_ip ? 1 : 0
+
+  name                = "${var.vm_name}-pip"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  ip_tags             = {
+    "FirstPartyUsage" = "/Unprivileged"
+  }
+  
+  tags = var.tags
+}
 
 resource "azurerm_network_interface" "vm_nic" {
   name                = "${var.vm_name}-nic"
@@ -8,6 +22,7 @@ resource "azurerm_network_interface" "vm_nic" {
     name                          = "${var.vm_name}-ipconfig"
     subnet_id                     = var.subnet_id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = var.create_public_ip ? azurerm_public_ip.vm_public_ip[0].id : null
   }
 
   tags = var.tags

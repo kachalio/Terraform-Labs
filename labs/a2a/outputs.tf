@@ -13,3 +13,11 @@ output "linux_vm_names" {
 output "windows_vm_names" {
   value = [for vm in module.windows_vm : vm.vm_name]
 }
+
+output "linux_public_ips" {
+  value = [for vm in module.linux_vm : vm.public_ip_address]
+}
+
+output "windows_public_ips" {
+  value = [for vm in module.windows_vm : vm.public_ip_address]
+}

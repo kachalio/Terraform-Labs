@@ -13,6 +13,12 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "create_public_ip" {
+  description = "Whether to create and attach a public IP address to the VM"
+  type        = bool
+  default     = false
+}
+
 variable "vm_name" {
   description = "The name of the Linux VM"
   type        = string

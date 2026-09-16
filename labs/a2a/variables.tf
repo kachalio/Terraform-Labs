@@ -219,6 +219,12 @@ variable "vm_admin_password" {
   sensitive   = true
 }
 
+variable "create_public_ip" {
+  description = "Whether to create and attach a public IP address to the VM"
+  type        = bool
+  default     = false
+}
+
 ### Linux VM ###
 
 variable "linux_vm_count" {
