@@ -7,7 +7,7 @@ variable "resource_group_name" {
 variable "resource_group_location" {
   description = "The location of your resource group and project resources (unless specified otherwise)"
   type        = string
-  default     = "CentralUS"
+  default     = "centralus"
   validation {
     condition = contains([
       "southafricanorth",
@@ -36,7 +36,7 @@ variable "resource_group_location" {
       "ukwest",
       "centralus",
       "westus2"
-    ])
+    ], var.resource_group_location)
     error_message = "You must select a region supported by Azure Migrate"
   }
 }
