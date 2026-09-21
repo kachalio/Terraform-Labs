@@ -25,6 +25,9 @@ locals {
   })
 }
 
+data "azurerm_subscription" "primary" {
+}
+
 resource "random_string" "migration_random_string" {
   length  = 4
   special = false
@@ -75,6 +78,10 @@ resource "azapi_resource" "migrate_project" {
   name      = var.migrate_project_name
   parent_id = azurerm_resource_group.rg.id
   location  = azurerm_resource_group.rg.location
+  identity {
+    type = "SystemAssigned"
+  }
+  
 
   body = {
     properties = {
@@ -113,6 +120,17 @@ resource "azurerm_storage_account" "migrate_storage_account" {
   
 }
 
+resource "azurerm_role_assignment" "storage_blob_data_contributor" {
+  scope = data.azurerm_subscription.primary.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id = azapi_resource.migrate_project.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "azure_migrate_service_reader" {
+  scope = data.azurerm_subscription.primary.id
+  role_definition_name = "Azure Migrate Service Reader"
+  principal_id = azapi_resource.migrate_project.identity[0].principal_id
+}
 
 ### Migration Private Endpoint Stuff ###
 
@@ -268,7 +286,7 @@ resource "azapi_resource" "migrate_server_solutions" {
   type = "${local.migrate_solutions_type}${local.migrate_solutions_api_version}"
   name = "${each.value.name}"
   parent_id = azapi_resource.migrate_project.id
-  # depends_on = [  ]
+  depends_on = [ module.source_network ]
 
   body = {
     properties = {
@@ -280,3 +298,9 @@ resource "azapi_resource" "migrate_server_solutions" {
     }
   }
 }
+
+/*
+
+
+
+*/
