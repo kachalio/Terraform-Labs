@@ -260,3 +260,23 @@ locals {
 
   }
 }
+
+resource "azapi_resource" "migrate_server_solutions" {
+  for_each = local.migrate_solutions
+
+  schema_validation_enabled = false
+  type = "${local.migrate_solutions_type}${local.migrate_solutions_api_version}"
+  name = "${each.value.name}"
+  parent_id = azapi_resource.migrate_project.id
+  # depends_on = [  ]
+
+  body = {
+    properties = {
+      "tool" = each.value.tool
+      "purpose" = each.value.purpose
+      "goal" = each.value.goal
+      "status" = each.value.status
+      "details" = each.value.details
+    }
+  }
+}
