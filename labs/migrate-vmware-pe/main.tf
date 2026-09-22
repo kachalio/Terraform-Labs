@@ -25,8 +25,11 @@ locals {
   })
 }
 
-data "azurerm_subscription" "primary" {
-}
+# Subscription details
+data "azurerm_subscription" "primary" {}
+
+# My account details
+data "azurerm_client_config" "current" {}
 
 resource "random_string" "migration_random_string" {
   length  = 4
@@ -121,15 +124,22 @@ resource "azurerm_storage_account" "migrate_storage_account" {
 }
 
 resource "azurerm_role_assignment" "storage_blob_data_contributor" {
-  scope = data.azurerm_subscription.primary.id
+  scope = azurerm_storage_account.migrate_storage_account.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id = azapi_resource.migrate_project.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "azure_migrate_service_reader" {
-  scope = data.azurerm_subscription.primary.id
+  scope = azurerm_storage_account.migrate_storage_account.id
   role_definition_name = "Azure Migrate Service Reader"
   principal_id = azapi_resource.migrate_project.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "user_access_administrator" {
+  scope = azurerm_storage_account.migrate_storage_account.id
+  role_definition_name = "User Access Administrator"
+  principal_id = data.azurerm_client_config.current.object_id
+  principal_type = "User"
 }
 
 ### Migration Private Endpoint Stuff ###
