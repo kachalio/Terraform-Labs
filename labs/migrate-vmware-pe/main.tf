@@ -129,14 +129,8 @@ resource "azurerm_role_assignment" "storage_blob_data_contributor" {
   principal_id = azapi_resource.migrate_project.identity[0].principal_id
 }
 
-resource "azurerm_role_assignment" "azure_migrate_service_reader" {
-  scope = azurerm_storage_account.migrate_storage_account.id
-  role_definition_name = "Azure Migrate Service Reader"
-  principal_id = azapi_resource.migrate_project.identity[0].principal_id
-}
-
 resource "azurerm_role_assignment" "user_access_administrator" {
-  scope = azurerm_storage_account.migrate_storage_account.id
+  scope = azurerm_resource_group.rg.id
   role_definition_name = "User Access Administrator"
   principal_id = data.azurerm_client_config.current.object_id
   principal_type = "User"
