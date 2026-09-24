@@ -66,6 +66,8 @@ module "source_network" {
   subnet_name             = var.source_subnet_name
   subnet_address_prefixes = var.source_subnet_address_prefixes
 
+  create_nat_gateway = false
+
   tags = merge(
     local.tags,
     {

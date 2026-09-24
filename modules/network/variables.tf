@@ -46,6 +46,12 @@ variable "security_rules_list" {
   }))
 }
 
+### NAT Gateway Variables ###
+
+variable "create_nat_gateway" {
+  default = true
+  description = "Bool for whether to create a NAT Gateway or not"
+}
 
 variable "tags" {
   description = "A map of tags to assign to the resources"

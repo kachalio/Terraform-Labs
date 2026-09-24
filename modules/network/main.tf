@@ -56,6 +56,7 @@ resource "azurerm_public_ip" "nat_gateway_pip" {
 ### NAT Gateway and associations, for VM public access ###
 
 resource "azurerm_nat_gateway" "nat_gateway" {
+  count = var.create_nat_gateway ? 1 : 0
   name                = "${azurerm_virtual_network.vnet.name}-nat-gateway"
   location            = var.rg_location
   resource_group_name = var.rg_name
@@ -63,11 +64,13 @@ resource "azurerm_nat_gateway" "nat_gateway" {
 }
 
 resource "azurerm_nat_gateway_public_ip_association" "nat_gateway_pip_association" {
-  nat_gateway_id = azurerm_nat_gateway.nat_gateway.id
+  count = var.create_nat_gateway ? 1 : 0
+  nat_gateway_id = azurerm_nat_gateway.nat_gateway[0].id
   public_ip_address_id = azurerm_public_ip.nat_gateway_pip.id
 }
 
 resource "azurerm_subnet_nat_gateway_association" "subnet_nat_gateway_association" {
+  count = var.create_nat_gateway ? 1 : 0
   subnet_id      = azurerm_subnet.subnet.id
-  nat_gateway_id = azurerm_nat_gateway.nat_gateway.id
+  nat_gateway_id = azurerm_nat_gateway.nat_gateway[0].id
 }
