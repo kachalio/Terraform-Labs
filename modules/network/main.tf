@@ -41,7 +41,12 @@ resource "azurerm_subnet_network_security_group_association" "subnet_nsg_associa
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
+
+
+### NAT Gateway and associations, for VM public access ###
+
 resource "azurerm_public_ip" "nat_gateway_pip" {
+  count = var.create_nat_gateway ? 1 : 0
   name                = "${azurerm_virtual_network.vnet.name}-nat-gateway-pip"
   location            = var.rg_location
   resource_group_name = var.rg_name
@@ -52,8 +57,6 @@ resource "azurerm_public_ip" "nat_gateway_pip" {
   zones = []
 
 }
-
-### NAT Gateway and associations, for VM public access ###
 
 resource "azurerm_nat_gateway" "nat_gateway" {
   count = var.create_nat_gateway ? 1 : 0
@@ -66,7 +69,7 @@ resource "azurerm_nat_gateway" "nat_gateway" {
 resource "azurerm_nat_gateway_public_ip_association" "nat_gateway_pip_association" {
   count = var.create_nat_gateway ? 1 : 0
   nat_gateway_id = azurerm_nat_gateway.nat_gateway[0].id
-  public_ip_address_id = azurerm_public_ip.nat_gateway_pip.id
+  public_ip_address_id = azurerm_public_ip.nat_gateway_pip[0].id
 }
 
 resource "azurerm_subnet_nat_gateway_association" "subnet_nat_gateway_association" {

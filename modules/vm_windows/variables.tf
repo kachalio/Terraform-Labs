@@ -54,7 +54,7 @@ variable "windows_vm_image" {
   default = {
     publisher = "MicrosoftWindowsServer"
     offer     = "WindowsServer"
-    sku       = "2019-Datacenter"
+    sku       = "2025-datacenter-azure-edition"
     version   = "latest"
   }
 }
@@ -63,6 +63,12 @@ variable "vm_os_disk_storage_account_type" {
   description = "The storage account type for the OS disk"
   type        = string
   default     = "Standard_LRS"
+}
+
+variable "secure_boot_enabled" {
+  description = "Whether secure boot is enabled for the Windows VM, this is also what controls Trusted Launch"
+  type        = bool
+  default     = false
 }
 
 

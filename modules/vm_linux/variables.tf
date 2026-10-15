@@ -58,6 +58,12 @@ variable "linux_vm_image" {
   }
 }
 
+variable "secure_boot_enabled" {
+  description = "Whether secure boot is enabled for the Linux VM"
+  type        = bool
+  default     = false
+}
+
 variable "vm_os_disk_storage_account_type" {
   description = "The storage account type for the OS disk"
   type        = string

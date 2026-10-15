@@ -33,6 +33,8 @@ module "source_network" {
 
   security_rules_list = var.security_rules_list
 
+  create_nat_gateway = var.create_nat_gateway 
+
   subnet_name             = var.source_subnet_name
   subnet_address_prefixes = var.source_subnet_address_prefixes
 
@@ -51,6 +53,7 @@ module "target_network" {
   vnet_address_space = var.target_vnet_address_space
 
   security_rules_list = var.security_rules_list
+  create_nat_gateway = var.create_nat_gateway
 
   subnet_name             = var.target_subnet_name
   subnet_address_prefixes = var.target_subnet_address_prefixes
@@ -113,6 +116,8 @@ module "linux_vm" {
   create_public_ip                = var.create_public_ip
   linux_vm_image                  = var.linux_vm_image
   vm_os_disk_storage_account_type = var.linux_vm_os_disk_storage_account_type
+  secure_boot_enabled              = var.secure_boot_enabled_linux
+  
 
   tags = {
     "DeployedByTerraform" = "YouBetcha"
@@ -132,6 +137,7 @@ module "windows_vm" {
   create_public_ip                = var.create_public_ip
   windows_vm_image                = var.windows_vm_image
   vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
+  secure_boot_enabled              = var.secure_boot_enabled_windows
 
   tags = {
     "DeployedByTerraform" = "YouBetcha"

@@ -25,6 +25,12 @@ variable "target_location" {
 
 ### Virtual Network ###
 
+variable "create_nat_gateway" {
+  description = "Whether to create a NAT gateway for the subnets"
+  type        = bool
+  default     = false
+}
+
 variable "source_vnet_name" {
   description = "The name of the source virtual network"
   type        = string
@@ -225,6 +231,12 @@ variable "create_public_ip" {
   default     = false
 }
 
+variable "secure_boot_enabled" {
+  description = "Whether secure boot is enabled for the VMs"
+  type        = bool
+  default     = false
+}
+
 ### Linux VM ###
 
 variable "linux_vm_count" {
@@ -267,6 +279,18 @@ variable "linux_vm_os_disk_storage_account_type" {
   default     = "Standard_LRS"
 }
 
+variable "secure_boot_enabled_linux" {
+  description = "Whether secure boot is enabled for the Linux VMs"
+  type        = bool
+  default     = true
+}
+
+variable "secure_boot_enabled_windows" {
+  description = "Whether secure boot is enabled for the Windows VMs"
+  type        = bool
+  default     = true
+}
+
 ### Windows VM ###
 
 variable "windows_vm_name_prefix" {
@@ -292,7 +316,7 @@ variable "windows_vm_image" {
   default = {
     publisher = "MicrosoftWindowsServer"
     offer     = "WindowsServer"
-    sku       = "2019-Datacenter"
+    sku       = "2025-datacenter-g2"
     version   = "latest"
   }
 }
@@ -303,6 +327,11 @@ variable "windows_vm_os_disk_storage_account_type" {
   default     = "Standard_LRS"
 }
 
+variable "secure_boot_enabled_windows" {
+  description = "Whether secure boot is enabled for the Windows VMs"
+  type        = bool
+  default     = true
+}
 
 ### Enabling ASR stuff ###
 variable "enable_replication" {

@@ -43,6 +43,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   patch_mode                                             = "AutomaticByPlatform"
   bypass_platform_safety_checks_on_user_schedule_enabled = true
 
+  secure_boot_enabled = var.secure_boot_enabled
 
   boot_diagnostics {
 

@@ -41,7 +41,8 @@ resource "azurerm_windows_virtual_machine" "vm" {
   # disable_password_authentication = "false"
   patch_mode = "AutomaticByPlatform"
   bypass_platform_safety_checks_on_user_schedule_enabled = true
-  
+  secure_boot_enabled = var.secure_boot_enabled
+
   boot_diagnostics {
     
   }
