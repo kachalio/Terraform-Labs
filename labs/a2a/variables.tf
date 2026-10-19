@@ -285,11 +285,7 @@ variable "secure_boot_enabled_linux" {
   default     = true
 }
 
-variable "secure_boot_enabled_windows" {
-  description = "Whether secure boot is enabled for the Windows VMs"
-  type        = bool
-  default     = true
-}
+
 
 ### Windows VM ###
 
