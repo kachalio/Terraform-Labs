@@ -79,9 +79,9 @@ resource "azurerm_recovery_services_vault" "asr_vault" {
 
 }
 
-resource "azurerm_storage_account" "asr_storage" {
-  name                      = var.cache_storage_name
-  resource_group_name       = azurerm_resource_group.target_rg.name
+resource "azurerm_storage_account" "asr_storage_source" {
+  name                      = "${var.cache_storage_name}source"
+  resource_group_name       = azurerm_resource_group.source_rg.name
   location                  = azurerm_resource_group.source_rg.location
   account_tier              = var.cache_storage_account_tier
   account_replication_type  = var.cache_storage_replication_type
@@ -89,14 +89,36 @@ resource "azurerm_storage_account" "asr_storage" {
   shared_access_key_enabled = true
 }
 
-resource "azurerm_role_assignment" "asr_vault_storage_blob_data_contributor" {
-  scope                = azurerm_storage_account.asr_storage.id
+resource "azurerm_role_assignment" "asr_vault_storage_source_blob_data_contributor" {
+  scope                = azurerm_storage_account.asr_storage_source.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
 }
 
-resource "azurerm_role_assignment" "asr_vault_storage_blob_contributor" {
-  scope                = azurerm_storage_account.asr_storage.id
+resource "azurerm_role_assignment" "asr_vault_storage_source_blob_contributor" {
+  scope                = azurerm_storage_account.asr_storage_source.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
+}
+
+resource "azurerm_storage_account" "asr_storage_target" {
+  name                      = "${var.cache_storage_name}target"
+  resource_group_name       = azurerm_resource_group.target_rg.name
+  location                  = azurerm_resource_group.target_rg.location
+  account_tier              = var.cache_storage_account_tier
+  account_replication_type  = var.cache_storage_replication_type
+  tags                      = { "SecurityControl" = "Ignore" }
+  shared_access_key_enabled = true
+}
+
+resource "azurerm_role_assignment" "asr_vault_storage_target_blob_data_contributor" {
+  scope                = azurerm_storage_account.asr_storage_target.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "asr_vault_storage_target_blob_contributor" {
+  scope                = azurerm_storage_account.asr_storage_target.id
   role_definition_name = "Contributor"
   principal_id         = azurerm_recovery_services_vault.asr_vault.identity[0].principal_id
 }
@@ -179,7 +201,7 @@ resource "azurerm_site_recovery_replicated_vm" "linux_vm_replication" {
 
   managed_disk {
     disk_id                    = each.value.os_disk_id
-    staging_storage_account_id = azurerm_storage_account.asr_storage.id
+    staging_storage_account_id = azurerm_storage_account.asr_storage_source.id
     target_resource_group_id   = azurerm_resource_group.target_rg.id
     target_disk_type           = var.linux_vm_os_disk_storage_account_type
     target_replica_disk_type   = var.linux_vm_os_disk_storage_account_type
@@ -220,7 +242,7 @@ resource "azurerm_site_recovery_replicated_vm" "windows_vm_replication" {
 
   managed_disk {
     disk_id                    = each.value.os_disk_id
-    staging_storage_account_id = azurerm_storage_account.asr_storage.id
+    staging_storage_account_id = azurerm_storage_account.asr_storage_source.id
     target_resource_group_id   = azurerm_resource_group.target_rg.id
     target_disk_type           = var.windows_vm_os_disk_storage_account_type
     target_replica_disk_type   = var.windows_vm_os_disk_storage_account_type
