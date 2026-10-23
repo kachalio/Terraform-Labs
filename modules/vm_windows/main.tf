@@ -54,13 +54,13 @@ resource "azurerm_windows_virtual_machine" "vm" {
     version   = var.windows_vm_image.version
   }
 
-  dynamic "windows_plan" {
+  dynamic "plan" {
     for_each = var.windows_plan == null ? [] : [var.windows_plan]
 
     content {
-      name = windows_plan.value.name
-      product = windows_plan.value.product
-      publisher = windows_plan.value.publisher
+      name = plan.value.name
+      product = plan.value.product
+      publisher = plan.value.publisher
     }
   }
 

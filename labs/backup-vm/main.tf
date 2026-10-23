@@ -111,6 +111,7 @@ module "windows_vm" {
   vm_admin_password               = var.vm_admin_password
   create_public_ip                = var.create_public_ip
   windows_vm_image                = var.windows_vm_image
+  windows_plan = var.windows_plan
   vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
   secure_boot_enabled              = var.secure_boot_enabled_windows
 

@@ -279,6 +279,16 @@ variable "windows_vm_image" {
   }
 }
 
+variable "windows_plan" {
+  description = "The plan for the Windows VM"
+  type = object({
+    name      = string
+    product   = string
+    publisher = string
+  })
+  default = null
+}
+
 variable "windows_vm_os_disk_storage_account_type" {
   description = "The storage account type for the Windows VM OS disk"
   type        = string
