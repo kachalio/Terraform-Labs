@@ -58,6 +58,16 @@ variable "linux_vm_image" {
   }
 }
 
+variable "linux_plan" {
+  description = "The plan for the Linux VM"
+  type = object({
+    name      = string
+    product   = string
+    publisher = string
+  })
+  default = null
+}
+
 variable "secure_boot_enabled" {
   description = "Whether secure boot is enabled for the Linux VM"
   type        = bool

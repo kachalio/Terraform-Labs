@@ -54,6 +54,16 @@ resource "azurerm_windows_virtual_machine" "vm" {
     version   = var.windows_vm_image.version
   }
 
+  dynamic "windows_plan" {
+    for_each = var.windows_plan == null ? [] : [var.windows_plan]
+
+    content {
+      name = windows_plan.value.name
+      product = windows_plan.value.product
+      publisher = windows_plan.value.publisher
+    }
+  }
+
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = var.vm_os_disk_storage_account_type

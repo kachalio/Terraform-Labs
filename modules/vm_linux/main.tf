@@ -56,6 +56,16 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = var.linux_vm_image.version
   }
 
+  dynamic "plan" {
+    for_each = var.linux_plan == null ? [] : [var.linux_plan]
+
+    content {
+      name = plan.value.name
+      product = plan.value.product
+      publisher = plan.value.publisher
+    }
+  }
+
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = var.vm_os_disk_storage_account_type
