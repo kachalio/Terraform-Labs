@@ -38,33 +38,13 @@ module "source_network" {
   }
 }
 
-module "target_network" {
-  source = "../../modules/network"
-
-  rg_name     = azurerm_resource_group.target_rg.name
-  rg_location = azurerm_resource_group.target_rg.location
-
-  vnet_name          = var.target_vnet_name
-  vnet_address_space = var.target_vnet_address_space
-
-  security_rules_list = var.security_rules_list
-  create_nat_gateway = var.create_nat_gateway
-
-  subnet_name             = var.target_subnet_name
-  subnet_address_prefixes = var.target_subnet_address_prefixes
-
-  tags = {
-    "DeployedByTerraform" = "YouBetcha"
-  }
-}
-
 
 ### Backup Stuff ###
 
 resource "azurerm_recovery_services_vault" "recovery_services_vault" {
   name                = var.rsv_name
-  location            = azurerm_resource_group.target_rg.location
-  resource_group_name = azurerm_resource_group.target_rg.name
+  location            = azurerm_resource_group.source_rg.location
+  resource_group_name = azurerm_resource_group.source_rg.name
   sku                 = "Standard"
   storage_mode_type   = var.rsv_storage_mode_type
 
@@ -72,6 +52,26 @@ resource "azurerm_recovery_services_vault" "recovery_services_vault" {
     type = "SystemAssigned"
   }
 
+}
+
+resource "azurerm_backup_policy_vm" "backup_policy" {
+  name                = "backup-policy"
+  resource_group_name = azurerm_resource_group.source_rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.recovery_services_vault.name
+
+  
+
+  backup {
+    frequency = "Daily"
+    time      = "23:00"
+  }
+
+  policy_type = "V2"
+  instant_restore_retention_days = 1
+
+  retention_daily {
+    count = 7
+  }
 }
 
 ### VM Stuff ###
@@ -88,8 +88,10 @@ module "linux_vm" {
   vm_admin_password               = var.vm_admin_password
   create_public_ip                = var.create_public_ip
   linux_vm_image                  = var.linux_vm_image
+  linux_plan = var.linux_plan
   vm_os_disk_storage_account_type = var.linux_vm_os_disk_storage_account_type
   secure_boot_enabled              = var.secure_boot_enabled_linux
+  
   
 
   tags = {
@@ -112,9 +114,34 @@ module "windows_vm" {
   vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
   secure_boot_enabled              = var.secure_boot_enabled_windows
 
+  
+
   tags = {
     "DeployedByTerraform" = "YouBetcha"
   }
 }
 
 ### Enabling Backup Protection Stuff ###
+
+resource "azurerm_backup_protected_vm" "linux_vm_backup" {
+  for_each = {
+    for vm in module.linux_vm : vm.vm_name => vm
+    if var.enable_backup
+  }
+  # count               = var.linux_vm_count
+  resource_group_name = azurerm_resource_group.source_rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.recovery_services_vault.name
+  source_vm_id        = each.value.vm_id
+  backup_policy_id    = azurerm_backup_policy_vm.backup_policy.id
+}
+
+resource "azurerm_backup_protected_vm" "windows_vm_backup" {
+  for_each = {
+    for vm in module.windows_vm : vm.vm_name => vm
+    if var.enable_backup
+  }
+  resource_group_name = azurerm_resource_group.source_rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.recovery_services_vault.name
+  source_vm_id        = each.value.vm_id
+  backup_policy_id    = azurerm_backup_policy_vm.backup_policy.id
+}

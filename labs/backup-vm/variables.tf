@@ -158,6 +158,11 @@ variable "rsv_storage_mode_type" {
   default     = "LocallyRedundant"
 }
 
+variable "enable_backup" {
+  description = "Whether to enable backup for the VMs"
+  type        = bool
+  default     = false
+}
 
 ### Shared VM ###
 
@@ -218,6 +223,16 @@ variable "linux_vm_image" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
+}
+
+variable "linux_plan" {
+  description = "The plan for the Linux VM"
+  type = object({
+    name      = string
+    product   = string
+    publisher = string
+  })
+  default = null
 }
 
 variable "linux_vm_os_disk_storage_account_type" {
