@@ -44,7 +44,7 @@ resource "azurerm_windows_virtual_machine" "vm" {
   secure_boot_enabled = var.secure_boot_enabled
 
   boot_diagnostics {
-    
+    storage_account_uri = null
   }
 
   source_image_reference {
@@ -70,4 +70,15 @@ resource "azurerm_windows_virtual_machine" "vm" {
   }
 
   tags = var.tags
+}
+
+resource "azurerm_managed_disk" "vm_data_disk" {
+  count                = var.vm_data_disk_configuration == null ? 0 : length(var.vm_data_disk_configuration)
+  name                 = "${var.vm_name}-data-disk-${count.index + 1}"
+  location             = var.location
+  resource_group_name  = var.resource_group_name
+  storage_account_type = var.vm_data_disk_configuration[count.index].storage_account_type
+  create_option        = "Empty"
+  disk_size_gb         = var.vm_data_disk_configuration[count.index].disk_size_gb
+  tags                 = var.tags
 }

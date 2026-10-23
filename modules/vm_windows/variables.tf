@@ -75,6 +75,15 @@ variable "vm_os_disk_storage_account_type" {
   default     = "Standard_LRS"
 }
 
+variable "vm_data_disk_configuration" {
+  description = "Configuration for the data disk attached to the Windows VM"
+  type = list(object({
+    storage_account_type = string
+    disk_size_gb         = number
+  }))
+  default = null
+}
+
 variable "secure_boot_enabled" {
   description = "Whether secure boot is enabled for the Windows VM, this is also what controls Trusted Launch"
   type        = bool
