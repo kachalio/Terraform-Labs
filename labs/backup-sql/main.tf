@@ -54,24 +54,45 @@ resource "azurerm_recovery_services_vault" "recovery_services_vault" {
 
 }
 
-resource "azurerm_backup_policy_vm" "backup_policy" {
+resource "azurerm_backup_policy_vm_workload" "backup_policy" {
   name                = "backup-policy"
   resource_group_name = azurerm_resource_group.source_rg.name
   recovery_vault_name = azurerm_recovery_services_vault.recovery_services_vault.name
 
-  
+  workload_type = "SQLDataBase"
 
-  backup {
-    frequency = "Daily"
-    time      = "23:00"
+  settings {
+    time_zone = "Eastern Standard Time"
+    compression_enabled = false
   }
 
-  policy_type = "V2"
-  instant_restore_retention_days = 1
+  protection_policy{
+    policy_type = "Full"
 
-  retention_daily {
-    count = 7
+    backup {
+      frequency = "Daily"
+      time      = "08:00"
+    }
+
+    retention_daily {
+      count = 7
+    }
   }
+
+  protection_policy {
+    
+    policy_type = "Log"
+
+    backup {
+      frequency_in_minutes = 15
+    }
+
+    simple_retention {
+      count = 7
+    }
+
+  }
+
 }
 
 ### VM Stuff ###
@@ -108,3 +129,4 @@ resource "azurerm_mssql_virtual_machine" "sql_vm" {
 }
 
 ### Enabling Backup Protection Stuff ###
+
