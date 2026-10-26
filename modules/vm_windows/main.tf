@@ -82,3 +82,11 @@ resource "azurerm_managed_disk" "vm_data_disk" {
   disk_size_gb         = var.vm_data_disk_configuration[count.index].disk_size_gb
   tags                 = var.tags
 }
+
+resource "azurerm_virtual_machine_data_disk_attachment" "vm_data_disk_attachment" {
+  count                = var.vm_data_disk_configuration == null ? 0 : length(var.vm_data_disk_configuration)
+  managed_disk_id      = azurerm_managed_disk.vm_data_disk[count.index].id
+  virtual_machine_id   = azurerm_windows_virtual_machine.vm.id
+  lun                  = count.index
+  caching              = "ReadWrite"
+}
