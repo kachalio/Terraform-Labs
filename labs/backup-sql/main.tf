@@ -3,12 +3,29 @@
 # Storage
 # RSV
 
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.0"
+    }
+    azapi = {
+      source  = "azure/azapi"
+      version = ">= 1.0"
+    }
+  }
+}
+
 provider "azurerm" {
   features {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
   }
+}
+
+provider "azapi" {
+
 }
 
 resource "azurerm_resource_group" "source_rg" {
@@ -130,3 +147,14 @@ resource "azurerm_mssql_virtual_machine" "sql_vm" {
 
 ### Enabling Backup Protection Stuff ###
 
+  resource "azapi_resource_action" "discover_sql_vm" {
+    type = "Microsoft.RecoveryServices/vaults@2016-12-01"
+    resource_id = azurerm_recovery_services_vault.recovery_services_vault.id
+    action = "backupFabrics/Azure/refreshContainers"
+    
+    query_parameters = {
+      filter = [ "backupManagementType eq 'AzureWorkload'"]
+    }
+  }
+
+  
