@@ -218,9 +218,9 @@ variable "windows_vm_image" {
     version   = string
   })
   default = {
-    publisher = "MicrosoftWindowsServer"
-    offer     = "WindowsServer"
-    sku       = "2025-datacenter-g2"
+    publisher = "MicrosoftSQLServer"
+    offer     = "SQL2022-WS2022"
+    sku       = "standard-gen2"
     version   = "latest"
   }
 }

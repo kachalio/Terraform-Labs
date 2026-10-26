@@ -100,5 +100,11 @@ module "windows_vm" {
   }
 }
 
+### Adds SQL Server Component ###
+resource "azurerm_mssql_virtual_machine" "sql_vm" {
+  count = var.windows_vm_count
+  virtual_machine_id = module.windows_vm[count.index].vm_id
+  sql_license_type   = "PAYG"
+}
 
 ### Enabling Backup Protection Stuff ###
