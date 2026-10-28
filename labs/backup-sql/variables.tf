@@ -255,3 +255,9 @@ variable "vm_data_disk_configuration" {
   }))
   default = null
 }
+
+variable "start_discovery" {
+  description = "Whether to start the discovery of SQL VMs for backup"
+  type        = bool
+  default     = false
+}
