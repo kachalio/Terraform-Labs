@@ -220,7 +220,3 @@ resource "azurerm_mssql_virtual_machine" "sql_vm" {
 
     depends_on = [azapi_resource_action.get_protectable_containers]
   }
-
-  output "locals" {
-    value = local.sql_container_details_by_vm
-  }
