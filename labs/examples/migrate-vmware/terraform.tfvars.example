@@ -1,0 +1,59 @@
+# migrate-vmware lab configuration template
+# Copy this file to terraform.tfvars in your deployment root.
+# Terraform does not automatically load the .example file.
+# Set required inputs below; optional assignments show the actual defaults.
+# Uncomment only the optional settings you want to override.
+# Never put real passwords in this template; use TF_VAR_* environment variables.
+# Choose distinct resource names for each deployment, including globally unique storage names.
+# Source of truth: variables.tf. Update this template when inputs or defaults change.
+
+# Required inputs (no defaults)
+
+# REQUIRED: the name of the migrate project
+migrate_project_name = "migratelab"
+
+# Optional inputs (defaults, commented out)
+
+# The Resource Group where your project will be deployed.
+# resource_group_name = "Lab-Migrate-PE"
+
+# The location of your resource group and project resources (unless specified otherwise)
+# resource_group_location = "centralus"
+
+# The name of the source virtual network
+# source_vnet_name = "Lab-Migrate-VNet"
+
+# The address space of the source virtual network
+# source_vnet_address_space = ["10.20.0.0/16"]
+
+# The name of the source subnet
+# source_subnet_name = "default"
+
+# The address prefixes of the source subnet
+# source_subnet_address_prefixes = ["10.20.0.0/24"]
+
+# List of security rules for the target NSG
+# security_rules_list = [
+#   {
+#     name                       = "AllowSSH"
+#     priority                   = 100
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "22"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   },
+#   {
+#     name                       = "AllowRDP"
+#     priority                   = 110
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "3389"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
+# ]

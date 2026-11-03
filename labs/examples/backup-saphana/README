@@ -1,0 +1,148 @@
+# Description
+This creates resources and installs SAP HANA so you can then configure an SAP HANA Backup Lab.  The SYSTEM key, pre-registration script, and enable backup tasks still need to be run manually
+
+## Resources Created by Default
+- Resource Group
+- Virtual Network
+- Network Gateway for public access
+- Linux VM (Your HANA instance)
+- Recovery Services Vault
+
+
+## Usage
+
+This directory is a deployment root that calls the reusable
+[SAP HANA module](../../../modules/labs/backup-saphana/). Keep deployment variable
+files and state here. To reference the lab from another Terraform
+configuration, use `modules/labs/backup-saphana`, not this deployment root. See
+the [module usage guide](../../../modules/labs/README.md). This configuration
+targets fresh deployments; state from the previous lab layout is not migrated.
+
+### Setup
+
+1. Open a terminal in this lab directory.
+
+2. Initialize Terraform:
+
+	```bash
+	terraform init
+	```
+
+
+
+## Variables
+
+See ./variables.tf for the full list of variables.  Here's a list of the required and commonly used ones to get you started.
+
+| Variable Name | Purpose | Type | Example Value |
+| ------------- | ------- | ---- | ------------- |
+| vm_admin_username | This is the username that will be configured on your Linux and Windows VMs | string | azureuser |
+| vm_admin_password | The password to use with the vm_admin_username to login to your linux and windows machines | string/secure string | $3cUR3P@$$w0rd |
+| var.hana_master_password | The master password for the SAP HANA Instance | string/secure string | $3cUR3P@$$w0rd |
+| source_rg_name | The resource group name for your source VMs and associated resources | string | Lab-ASR-SourceRG |
+| source_location | The resource location/region used for your source side resources | string | eastus2 |
+
+
+### Using and Setting Variables
+
+Copy [terraform.tfvars.example](terraform.tfvars.example) to a local
+`terraform.tfvars` file:
+
+```powershell
+Copy-Item .\terraform.tfvars.example .\terraform.tfvars
+```
+
+The template lists every input with optional defaults commented out. Edit
+required non-secret values and uncomment settings to override their defaults.
+Leave password assignments commented and supply them through
+`TF_VAR_vm_admin_password` and `TF_VAR_hana_master_password`. Keep the template
+in sync with `variables.tf`; never add real credentials to it.
+
+For example, override these optional settings:
+
+```hcl
+source_rg_name="Lab-ASR-SourceRG" 
+source_location="westus2"
+create_public_ip=true
+```
+This file must be placed in the same directory as main.tf, or the path specified manually using the `-var-file` parameter.
+
+Alternatively, pass variables on the command line:
+
+```bash
+terraform plan -var source_rg_name="Example-RG"
+```
+or
+```bash
+$sourceResourceGroupName = "Example-RG"
+terraform plan -var source_rg_name=$sourceResourceGroupName
+```
+
+### Credentials
+
+You can use the following to set a credential and pass to terraform
+
+```bash
+$vm_credential = $(Get-Credential azureuser)
+terraform plan -var vm_admin_username=$($vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password)
+```
+
+Do not commit credentials, secrets, state files, or sensitive variable files to source control.
+
+### Deploy the Lab
+
+Once variables are set, you can do the following
+
+
+1. See what will be created without applying anything.  Useful for testing:
+
+	```bash
+	terraform plan -var vm_admin_username=$($vm_credential.UserName) -var vm_admin_password=$($vm_credential.GetNetworkCredential().Password) 
+	```
+
+2. Apply the changes outputs:
+
+	```bash
+	terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
+	```
+This will create resources, but will not enable replication.
+
+### Post Deployment Steps
+You will still need to create the SYSTEM key that is used by AZUREWLBACKUPSAPHANAUSER.  [Public Docs here](https://learn.microsoft.com/en-us/azure/backup/tutorial-backup-sap-hana-db#prerequisites)
+
+Follow these steps for the HXE (trial) environment:
+
+1.	Log on the HANA lab machine using hxeadm user
+
+```bash
+su hxeadm -
+```
+
+2.	Run hdbusertore command to add the key
+
+```bash
+hdbuserstore set <Name of your Key> <host name>:39013 SYSTEM <SYSTEM user password>
+```
+
+3. Validate the key was added
+
+```bash
+hdbuserstore list
+```
+
+4. Download and run preregistration script, found on the public docs linked above
+
+## Cleanup
+
+Destroy resources after completing the lab to avoid unnecessary costs:
+
+```bash
+terraform destroy -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
+```
+
+## Troubleshooting
+
+- Run `terraform init -upgrade` after changing provider versions.
+- Run `terraform validate` to check the configuration.
+- Verify credentials and provider permissions if authentication fails.
+- Review the plan carefully before applying or destroying resources.
