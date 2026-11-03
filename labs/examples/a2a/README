@@ -13,10 +13,10 @@ This creates a basic lab environment for Azure to Azure replication scenarios.
 ## Usage
 
 This directory is a deployment root that calls the reusable
-[A2A module](../../modules/labs/a2a/). Keep deployment variable files and state
+[A2A module](../../../modules/labs/a2a/). Keep deployment variable files and state
 here. To reference the lab from another Terraform configuration, use
 `modules/labs/a2a`, not this deployment root. See the
-[module usage guide](../../modules/labs/README.md). This configuration targets
+[module usage guide](../../../modules/labs/README.md). This configuration targets
 fresh deployments; state from the previous lab layout is not migrated.
 
 ### Setup
@@ -47,7 +47,20 @@ See ./variables.tf for the full list of variables.  Here's a list of the require
 
 ### Using and Setting Variables
 
-Set variables in a local `terraform.tfvars` file:
+Copy [terraform.tfvars.example](terraform.tfvars.example) to a local
+`terraform.tfvars` file:
+
+```powershell
+Copy-Item .\terraform.tfvars.example .\terraform.tfvars
+```
+
+The template lists every input with optional defaults commented out. Edit
+required non-secret values and uncomment settings to override their defaults.
+Leave the password assignment commented and supply it through
+`TF_VAR_vm_admin_password`. Keep the template in sync with `variables.tf`;
+never add real credentials to it.
+
+For example, override these optional settings:
 
 ```hcl
 source_rg_name="Lab-ASR-SourceRG" 

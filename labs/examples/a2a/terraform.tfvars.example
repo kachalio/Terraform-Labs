@@ -1,0 +1,209 @@
+# a2a lab configuration template
+# Copy this file to terraform.tfvars in your deployment root.
+# Terraform does not automatically load the .example file.
+# Set required inputs below; optional assignments show the actual defaults.
+# Uncomment only the optional settings you want to override.
+# Never put real passwords in this template; use TF_VAR_* environment variables.
+# Choose distinct resource names for each deployment, including globally unique storage names.
+# Source of truth: variables.tf. Update this template when inputs or defaults change.
+
+# Required inputs (no defaults)
+
+# REQUIRED: The admin username for the virtual machine
+vm_admin_username = "azureuser"
+
+# REQUIRED: The admin password for the virtual machine
+# Sensitive: set TF_VAR_vm_admin_password; leave the assignment below commented.
+# vm_admin_password = "<provided through TF_VAR_vm_admin_password>"
+
+# Optional inputs (defaults, commented out)
+
+# The name of the source resource group
+# source_rg_name = "Lab-ASR-Source"
+
+# The region of the source resource group
+# source_location = "eastus2"
+
+# The name of the target resource group
+# target_rg_name = "Lab-ASR-Target"
+
+# The region of the target resource group
+# target_location = "westus2"
+
+# Whether to create a NAT gateway for the subnets
+# create_nat_gateway = false
+
+# The name of the source virtual network
+# source_vnet_name = "Lab-ASR-Source-VNet"
+
+# The address space of the source virtual network
+# source_vnet_address_space = ["10.0.0.0/16"]
+
+# The name of the source subnet
+# source_subnet_name = "default"
+
+# The address prefixes of the source subnet
+# source_subnet_address_prefixes = ["10.0.0.0/24"]
+
+# The name of the target virtual network
+# target_vnet_name = "Lab-ASR-Target-VNet"
+
+# The address space of the target virtual network
+# target_vnet_address_space = ["10.1.0.0/16"]
+
+# The name of the target subnet
+# target_subnet_name = "default"
+
+# The address prefixes of the target subnet
+# target_subnet_address_prefixes = ["10.1.0.0/24"]
+
+# List of security rules for the target NSG
+# security_rules_list = [
+#   {
+#     name                       = "AllowSSH"
+#     priority                   = 100
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "22"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   },
+#   {
+#     name                       = "AllowRDP"
+#     priority                   = 110
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "3389"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   },
+#   {
+#     name                       = "AllowStorage"
+#     priority                   = 120
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "Storage"
+#   },
+#   {
+#     name                       = "AllowEntra"
+#     priority                   = 130
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "AzureActiveDirectory"
+#   },
+#   {
+#     name                       = "AllowEventsHub"
+#     priority                   = 140
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "EventHub"
+#   },
+#   {
+#     name                       = "AllowASR"
+#     priority                   = 150
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "AzureSiteRecovery"
+#   },
+#   {
+#     name                       = "AllowGuestAndHybridManagement"
+#     priority                   = 160
+#     direction                  = "Outbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "GuestAndHybridManagement"
+#   }
+# ]
+
+# The name of the Recovery Services Vault
+# rsv_name = "tf-asr-vault"
+
+# The SKU of the Recovery Services Vault
+# rsv_sku = "Standard"
+
+# The storage mode type of the Recovery Services Vault
+# rsv_storage_mode_type = "LocallyRedundant"
+
+# The name of the cache storage account
+# cache_storage_name = "tfasrcachestorage"
+
+# The tier of the cache storage account
+# cache_storage_account_tier = "Standard"
+
+# The replication type of the cache storage account
+# cache_storage_replication_type = "LRS"
+
+# Whether to create and attach a public IP address to the VM
+# create_public_ip = false
+
+# Whether secure boot is enabled for the VMs
+# secure_boot_enabled = false
+
+# The number of Linux VMs to create
+# linux_vm_count = 1
+
+# The prefix for the Linux VM name
+# linux_vm_name_prefix = "lin-vm"
+
+# The size of the virtual machine
+# vm_size = "Standard_D2s_v5"
+
+# The image reference for the Linux VM
+# linux_vm_image = {
+#   publisher = "Canonical"
+#   offer     = "UbuntuServer"
+#   sku       = "18.04-LTS"
+#   version   = "latest"
+# }
+
+# The storage account type for the Linux VM OS disk
+# linux_vm_os_disk_storage_account_type = "Standard_LRS"
+
+# Whether secure boot is enabled for the Linux VMs
+# secure_boot_enabled_linux = true
+
+# The prefix for the Windows VM name
+# windows_vm_name_prefix = "win-vm"
+
+# The number of Windows VMs to create
+# windows_vm_count = 1
+
+# The image reference for the Windows VM
+# windows_vm_image = {
+#   publisher = "MicrosoftWindowsServer"
+#   offer     = "WindowsServer"
+#   sku       = "2025-datacenter-g2"
+#   version   = "latest"
+# }
+
+# The storage account type for the Windows VM OS disk
+# windows_vm_os_disk_storage_account_type = "Standard_LRS"
+
+# Whether secure boot is enabled for the Windows VMs
+# secure_boot_enabled_windows = true
+
+# Flag to enable or disable ASR resources
+# enable_replication = false

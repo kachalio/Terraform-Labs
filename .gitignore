@@ -1,3 +1,7 @@
+# Local lab folders (keep shared examples)
+/labs/*/
+!/labs/examples/
+
 # Local Terraform directories
 **/.terraform/*
 

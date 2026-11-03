@@ -9,12 +9,13 @@ These configurations create billable Azure resources and are intended for lab an
 ```text
 .
 |-- labs/
-|   |-- a2a/                 # Azure-to-Azure Site Recovery lab
-|   |-- backup-saphana/      # SAP HANA backup lab
-|   |-- backup-sql/          # SQL Server backup lab
-|   |-- backup-vm/           # Azure VM backup lab
-|   |-- migrate-vmware/      # VMware migration lab
-|   `-- migrate-vmware-pe/   # VMware migration with private endpoints
+|   `-- examples/
+|       |-- a2a/                 # Azure-to-Azure Site Recovery lab
+|       |-- backup-saphana/       # SAP HANA backup lab
+|       |-- backup-sql/           # SQL Server backup lab
+|       |-- backup-vm/            # Azure VM backup lab
+|       |-- migrate-vmware/       # VMware migration lab
+|       `-- migrate-vmware-pe/    # VMware migration with private endpoints
 |-- modules/
 |   |-- labs/               # Reusable implementations of all six labs
 |   |-- asr_enable_replication/
@@ -26,7 +27,7 @@ These configurations create billable Azure resources and are intended for lab an
 `-- tests/reusable-labs/     # Offline Terraform module tests
 ```
 
-Each directory under `labs/` is an independent deployment root with its own variables and state. It calls the corresponding reusable child module under `modules/labs/`. Run Terraform commands from the lab directory you want to deploy, or reference a child module from your own deployment root.
+Each lab directory under `labs/examples/` is an independent deployment root with its own variables and state. It calls the corresponding reusable child module under `modules/labs/`. Each includes a `terraform.tfvars.example` template listing every available input. Run Terraform commands from the example lab directory you want to deploy, or reference a child module from your own deployment root. Other folders under `labs/` are ignored for local deployments.
 
 See [Reusable Lab Modules](modules/labs/README.md) for module sources, required inputs, provider configuration, multiple instances, and offline tests. These configurations target fresh deployments and do not migrate state from the previous lab layout. Use new deployment state and distinct resource names instead of reusing a pre-refactor lab deployment.
 
@@ -34,8 +35,8 @@ See [Reusable Lab Modules](modules/labs/README.md) for module sources, required 
 
 | Lab | Description | Documentation |
 | --- | --- | --- |
-| Azure-to-Azure replication | Creates source and target networks, Windows and Linux VMs, a Recovery Services vault, cache storage, and optional ASR replication. | [labs/a2a/README](labs/a2a/README) |
-| SAP HANA backup | Creates a network, SUSE Linux VM, Recovery Services vault, and a VM extension that downloads and installs SAP HANA Express. Some backup registration steps remain manual. | [labs/backup-saphana/README](labs/backup-saphana/README) |
+| Azure-to-Azure replication | Creates source and target networks, Windows and Linux VMs, a Recovery Services vault, cache storage, and optional ASR replication. | [labs/examples/a2a/README](labs/examples/a2a/README) |
+| SAP HANA backup | Creates a network, SUSE Linux VM, Recovery Services vault, and a VM extension that downloads and installs SAP HANA Express. Some backup registration steps remain manual. | [labs/examples/backup-saphana/README](labs/examples/backup-saphana/README) |
 | SQL Server backup | Creates Windows SQL VMs, a Recovery Services vault, a workload backup policy, and optional discovery and registration actions. | [Module reference](modules/labs/README.md) |
 | Azure VM backup | Creates Windows and Linux VMs, a Recovery Services vault, a VM backup policy, and optional VM protection. | [Module reference](modules/labs/README.md) |
 | VMware migration | Creates a network, Azure Migrate project, and migration solutions. | [Module reference](modules/labs/README.md) |
@@ -60,16 +61,18 @@ az account set --subscription "<subscription-name-or-id>"
 Choose a lab and change to its directory:
 
 ```powershell
-Set-Location .\labs\a2a
+Set-Location .\labs\examples\a2a
+Copy-Item .\terraform.tfvars.example .\terraform.tfvars
 ```
 
-Create a local `terraform.tfvars` file containing the required values. Consult the selected lab's `variables.tf` for all available settings.
+Edit the required non-secret values in the copied file. Optional settings show
+their actual defaults and are commented out; uncomment only what you want to
+override. Objects and lists are shown in full, including example replacements
+for nullable plans and data disk configuration.
 
-```hcl
-vm_admin_username = "azureuser"
-source_location   = "eastus2"
-create_public_ip  = false
-```
+Terraform does not automatically load `terraform.tfvars.example`. The template
+is safe to commit; the working `terraform.tfvars` remains ignored. Keep templates
+in sync with the selected lab's `variables.tf` when inputs or defaults change.
 
 Supply secrets through environment variables instead of writing them to shell history:
 

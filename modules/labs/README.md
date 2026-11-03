@@ -4,7 +4,7 @@ Each subdirectory is a reusable Terraform child module. Configure providers in
 your deployment root and reference a lab with a `module` block. Do not run
 `terraform apply` from these module directories.
 
-The [deployment roots](../../labs/) are thin wrappers for direct use. Keep each
+The [deployment roots](../../labs/examples/) are thin wrappers for direct use. Keep each
 deployment's variable files and state in its root, not in the reusable module.
 These configurations target fresh deployments and do not migrate state from the
 previous lab layout. Use new deployment state and distinct resource names
@@ -12,14 +12,22 @@ instead of reusing a pre-refactor lab deployment.
 
 ## Available Modules
 
-| Module | Required inputs | Input reference | Output reference |
-| --- | --- | --- | --- |
-| `a2a` | `vm_admin_username`, `vm_admin_password` | [variables.tf](a2a/variables.tf) | [outputs.tf](a2a/outputs.tf) |
-| `backup-saphana` | `vm_admin_username`, `vm_admin_password`, `hana_master_password` | [variables.tf](backup-saphana/variables.tf) | [outputs.tf](backup-saphana/outputs.tf) |
-| `backup-sql` | `vm_admin_username`, `vm_admin_password` | [variables.tf](backup-sql/variables.tf) | [outputs.tf](backup-sql/outputs.tf) |
-| `backup-vm` | `vm_admin_username`, `vm_admin_password` | [variables.tf](backup-vm/variables.tf) | [outputs.tf](backup-vm/outputs.tf) |
-| `migrate-vmware` | `migrate_project_name` | [variables.tf](migrate-vmware/variables.tf) | [outputs.tf](migrate-vmware/outputs.tf) |
-| `migrate-vmware-pe` | `migrate_project_name` | [variables.tf](migrate-vmware-pe/variables.tf) | [outputs.tf](migrate-vmware-pe/outputs.tf) |
+| Module | Required inputs | Input reference | Output reference | Variable template |
+| --- | --- | --- | --- | --- |
+| `a2a` | `vm_admin_username`, `vm_admin_password` | [variables.tf](a2a/variables.tf) | [outputs.tf](a2a/outputs.tf) | [terraform.tfvars.example](../../labs/examples/a2a/terraform.tfvars.example) |
+| `backup-saphana` | `vm_admin_username`, `vm_admin_password`, `hana_master_password` | [variables.tf](backup-saphana/variables.tf) | [outputs.tf](backup-saphana/outputs.tf) | [terraform.tfvars.example](../../labs/examples/backup-saphana/terraform.tfvars.example) |
+| `backup-sql` | `vm_admin_username`, `vm_admin_password` | [variables.tf](backup-sql/variables.tf) | [outputs.tf](backup-sql/outputs.tf) | [terraform.tfvars.example](../../labs/examples/backup-sql/terraform.tfvars.example) |
+| `backup-vm` | `vm_admin_username`, `vm_admin_password` | [variables.tf](backup-vm/variables.tf) | [outputs.tf](backup-vm/outputs.tf) | [terraform.tfvars.example](../../labs/examples/backup-vm/terraform.tfvars.example) |
+| `migrate-vmware` | `migrate_project_name` | [variables.tf](migrate-vmware/variables.tf) | [outputs.tf](migrate-vmware/outputs.tf) | [terraform.tfvars.example](../../labs/examples/migrate-vmware/terraform.tfvars.example) |
+| `migrate-vmware-pe` | `migrate_project_name` | [variables.tf](migrate-vmware-pe/variables.tf) | [outputs.tf](migrate-vmware-pe/outputs.tf) | [terraform.tfvars.example](../../labs/examples/migrate-vmware-pe/terraform.tfvars.example) |
+
+Copy the selected template to `terraform.tfvars` in your deployment root, edit
+required non-secret inputs, and uncomment optional settings to override defaults.
+Supply sensitive inputs using the indicated `TF_VAR_*` environment variables.
+The `.example` suffix prevents automatic loading; the copied working file is
+ignored by Git. Child modules do not load variable files: your root must declare
+and forward the inputs it uses. Keep templates aligned with their variable
+definitions when adding or changing inputs.
 
 Terraform 1.1 or later is required. AzureRM is required by
 all labs. SQL backup and both Migrate labs also require `azure/azapi`; the Migrate
@@ -141,8 +149,8 @@ Set `enable_replication = true` to enable A2A replication. Setting it to `false`
 removes replication resources. Disable replication before destroying an A2A lab.
 
 The HANA lab requires its documented manual backup setup. See the
-[A2A instructions](../../labs/a2a/README) and
-[HANA instructions](../../labs/backup-saphana/README) for lab-specific steps.
+[A2A instructions](../../labs/examples/a2a/README) and
+[HANA instructions](../../labs/examples/backup-saphana/README) for lab-specific steps.
 
 ## Offline Validation
 
