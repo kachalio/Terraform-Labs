@@ -1,6 +1,6 @@
 # Azure Lab Automation
 
-Terraform configurations for deploying disposable Azure lab environments. The repository currently includes an Azure-to-Azure Site Recovery lab and an SAP HANA backup lab, supported by reusable network and virtual machine modules.
+Terraform configurations and reusable modules for deploying disposable Azure lab environments. The repository includes Site Recovery, backup, and VMware migration labs, supported by reusable network and virtual machine modules.
 
 These configurations create billable Azure resources and are intended for lab and testing use. Review every Terraform plan before applying it, and destroy resources when they are no longer needed.
 
@@ -10,17 +10,25 @@ These configurations create billable Azure resources and are intended for lab an
 .
 |-- labs/
 |   |-- a2a/                 # Azure-to-Azure Site Recovery lab
-|   `-- backup-saphana/      # SAP HANA backup lab
+|   |-- backup-saphana/      # SAP HANA backup lab
+|   |-- backup-sql/          # SQL Server backup lab
+|   |-- backup-vm/           # Azure VM backup lab
+|   |-- migrate-vmware/      # VMware migration lab
+|   `-- migrate-vmware-pe/   # VMware migration with private endpoints
 |-- modules/
+|   |-- labs/               # Reusable implementations of all six labs
 |   |-- asr_enable_replication/
 |   |-- backup_vault/
 |   |-- network/
 |   |-- vm_linux/
 |   `-- vm_windows/
-`-- scripts/                 # Supporting setup scripts
+|-- scripts/                # Supporting setup scripts
+`-- tests/reusable-labs/     # Offline Terraform module tests
 ```
 
-Each directory under `labs/` is an independent Terraform root module with its own variables and state. Run Terraform commands from the lab directory you want to deploy.
+Each directory under `labs/` is an independent deployment root with its own variables and state. It calls the corresponding reusable child module under `modules/labs/`. Run Terraform commands from the lab directory you want to deploy, or reference a child module from your own deployment root.
+
+See [Reusable Lab Modules](modules/labs/README.md) for module sources, required inputs, provider configuration, multiple instances, and offline tests. These configurations target fresh deployments and do not migrate state from the previous lab layout. Use new deployment state and distinct resource names instead of reusing a pre-refactor lab deployment.
 
 ## Labs
 
@@ -28,12 +36,16 @@ Each directory under `labs/` is an independent Terraform root module with its ow
 | --- | --- | --- |
 | Azure-to-Azure replication | Creates source and target networks, Windows and Linux VMs, a Recovery Services vault, cache storage, and optional ASR replication. | [labs/a2a/README](labs/a2a/README) |
 | SAP HANA backup | Creates a network, SUSE Linux VM, Recovery Services vault, and a VM extension that downloads and installs SAP HANA Express. Some backup registration steps remain manual. | [labs/backup-saphana/README](labs/backup-saphana/README) |
+| SQL Server backup | Creates Windows SQL VMs, a Recovery Services vault, a workload backup policy, and optional discovery and registration actions. | [Module reference](modules/labs/README.md) |
+| Azure VM backup | Creates Windows and Linux VMs, a Recovery Services vault, a VM backup policy, and optional VM protection. | [Module reference](modules/labs/README.md) |
+| VMware migration | Creates a network, Azure Migrate project, and migration solutions. | [Module reference](modules/labs/README.md) |
+| VMware migration with private endpoints | Adds storage, private endpoints, DNS resources, and role assignments to the migration lab. | [Module reference](modules/labs/README.md) |
 
 ## Prerequisites
 
 - An Azure subscription
 - Permissions to create the resources used by the selected lab
-- [Terraform](https://developer.hashicorp.com/terraform/install)
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.1 or later (1.7 or later for offline tests)
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
 
 Authenticate and select the subscription before running Terraform:

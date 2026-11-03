@@ -116,6 +116,6 @@ variable "migrate_project_name" {
 
 variable "give_uaa_on_storage" {
   description = "bool used to control whether or not to automatically provision User Access Administrator for my own user on the storage account"
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }

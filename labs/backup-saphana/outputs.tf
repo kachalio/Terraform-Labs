@@ -1,11 +1,11 @@
 output "source_resource_group_id" {
-  value = azurerm_resource_group.source_rg.id
+  value = module.lab.source_resource_group_id
 }
 
 output "linux_vm_names" {
-  value = [for vm in module.linux_vm : vm.vm_name]
+  value = module.lab.linux_vm_names
 }
 
 output "windows_vm_names" {
-  value = [for vm in module.windows_vm : vm.vm_name]
+  value = module.lab.windows_vm_names
 }

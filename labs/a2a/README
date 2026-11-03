@@ -12,6 +12,13 @@ This creates a basic lab environment for Azure to Azure replication scenarios.
 
 ## Usage
 
+This directory is a deployment root that calls the reusable
+[A2A module](../../modules/labs/a2a/). Keep deployment variable files and state
+here. To reference the lab from another Terraform configuration, use
+`modules/labs/a2a`, not this deployment root. See the
+[module usage guide](../../modules/labs/README.md). This configuration targets
+fresh deployments; state from the previous lab layout is not migrated.
+
 ### Setup
 
 1. Open a terminal in this lab directory.
@@ -94,6 +101,8 @@ This will create resources, but will not enable replication.
 
 ### Enable Replication
 Change the enable_replication variable to `true`
+This creates the ASR protection module resources (fabrics, containers, replication policy, and mappings) and enables VM replication. When `false`, neither the module resources nor VM replication resources are created; the vault, storage accounts, networks, and VMs are still created.
+
 ```bash
 terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=true
 ```
@@ -104,7 +113,7 @@ Change the enable_replication variable to `false`
 ```bash
 terraform apply -var vm_admin_username=$vm_credential.UserName -var vm_admin_password=$vm_credential.GetNetworkCredential().Password -var enable_replication=false
 ```
-If replication was previously enabled and run `terraform apply` again with this variable set to `false`, it will disable replication
+If replication was previously enabled and you run `terraform apply` again with this variable set to `false`, it will disable VM replication and remove the ASR protection module resources.
 
 ## Cleanup
 
