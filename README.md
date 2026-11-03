@@ -58,6 +58,26 @@ az account set --subscription "<subscription-name-or-id>"
 
 ## Quick Start
 
+### Guided PowerShell Deployment
+
+For users unfamiliar with Terraform:
+
+```powershell
+.\scripts\New-Lab.ps1
+```
+
+The wizard selects a lab and Azure subscription, prompts for inputs, and creates
+an isolated environment under `labs\<environment-name>`. It previews changes
+and requires typing `DEPLOY` before applying the reviewed plan. PowerShell 7 or
+later is required; Terraform and Azure CLI must be installed.
+
+Use `-PlanOnly` to preview without deploying and
+`-EnvironmentName <name> -Resume` to retry or update a saved environment.
+See [Guided Lab Deployment](scripts/README.md) for input examples, secret/state
+handling, lab-specific caveats, and cleanup.
+
+### Manual Terraform Deployment
+
 Choose a lab and change to its directory:
 
 ```powershell

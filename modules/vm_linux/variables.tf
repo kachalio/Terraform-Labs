@@ -28,7 +28,7 @@ variable "vm_name" {
 variable "linux_vm_size" {
   description = "The size of the Linux VM"
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_D2s_v5"
 }
 
 variable "vm_admin_username" {
