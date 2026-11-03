@@ -1,0 +1,29 @@
+module "lab" {
+  source = "../../modules/labs/backup-sql"
+
+  source_rg_name                          = var.source_rg_name
+  source_location                         = var.source_location
+  create_nat_gateway                      = var.create_nat_gateway
+  source_vnet_name                        = var.source_vnet_name
+  source_vnet_address_space               = var.source_vnet_address_space
+  source_subnet_name                      = var.source_subnet_name
+  source_subnet_address_prefixes          = var.source_subnet_address_prefixes
+  security_rules_list                     = var.security_rules_list
+  rsv_name                                = var.rsv_name
+  rsv_sku                                 = var.rsv_sku
+  rsv_storage_mode_type                   = var.rsv_storage_mode_type
+  enable_backup                           = var.enable_backup
+  vm_admin_username                       = var.vm_admin_username
+  vm_admin_password                       = var.vm_admin_password
+  create_public_ip                        = var.create_public_ip
+  secure_boot_enabled                     = var.secure_boot_enabled
+  vm_size                                 = var.vm_size
+  windows_vm_name_prefix                  = var.windows_vm_name_prefix
+  windows_vm_count                        = var.windows_vm_count
+  windows_vm_image                        = var.windows_vm_image
+  windows_plan                            = var.windows_plan
+  windows_vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
+  secure_boot_enabled_windows             = var.secure_boot_enabled_windows
+  vm_data_disk_configuration              = var.vm_data_disk_configuration
+  start_discovery                         = var.start_discovery
+}
