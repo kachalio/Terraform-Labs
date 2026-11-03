@@ -71,6 +71,21 @@ function Read-LabChoice {
     }
 }
 
+function Get-LabBlockAttributes {
+    param([string] $Body)
+
+    $attributes = @{}
+    # The repository's block attributes use two spaces; nested expressions use more.
+    $starts = [regex]::Matches($Body, '(?m)^  ([a-zA-Z_]+)\s*(=|\{)[ \t]*')
+    for ($index = 0; $index -lt $starts.Count; $index++) {
+        if ($starts[$index].Groups[2].Value -ne '=') { continue }
+        $start = $starts[$index].Index + $starts[$index].Length
+        $end = if ($index + 1 -lt $starts.Count) { $starts[$index + 1].Index } else { $Body.Length }
+        $attributes[$starts[$index].Groups[1].Value] = $Body.Substring($start, $end - $start).Trim()
+    }
+    return $attributes
+}
+
 function Get-LabVariables {
     param([string] $Path)
 
@@ -80,16 +95,7 @@ function Get-LabVariables {
         throw "Cannot read all input definitions in $Path. Expected top-level variable blocks."
     }
     foreach ($block in $blocks) {
-        $attributes = @{}
-        $body = $block.Groups[2].Value
-        # The repository's variable attributes use two spaces; nested expressions use more.
-        $starts = [regex]::Matches($body, '(?m)^  ([a-zA-Z_]+)\s*(=|\{)[ \t]*')
-        for ($index = 0; $index -lt $starts.Count; $index++) {
-            if ($starts[$index].Groups[2].Value -ne '=') { continue }
-            $start = $starts[$index].Index + $starts[$index].Length
-            $end = if ($index + 1 -lt $starts.Count) { $starts[$index + 1].Index } else { $body.Length }
-            $attributes[$starts[$index].Groups[1].Value] = $body.Substring($start, $end - $start).Trim()
-        }
+        $attributes = Get-LabBlockAttributes $block.Groups[2].Value
         if (-not $attributes.ContainsKey('description') -or -not $attributes.ContainsKey('type')) {
             throw "Missing description or type for input $($block.Groups[1].Value) in $Path."
         }
@@ -102,6 +108,86 @@ function Get-LabVariables {
             Sensitive = $attributes['sensitive'] -eq 'true'
         }
     }
+}
+
+function New-LabSeedFiles {
+    param([string] $LabName, [string] $ModuleDirectory, [string] $Directory, [object[]] $Variables)
+
+    foreach ($file in @('variables.tf', 'versions.tf')) {
+        Copy-Item -LiteralPath (Join-Path $ModuleDirectory $file) -Destination (Join-Path $Directory $file)
+    }
+    $versions = Get-Content -LiteralPath (Join-Path $ModuleDirectory 'versions.tf') -Raw
+    $providerNames = @([regex]::Matches($versions, '(?m)^    ([a-z][a-z0-9_]*)\s*=\s*\{') |
+        ForEach-Object { $_.Groups[1].Value })
+    if ('azurerm' -notin $providerNames) {
+        throw "The $LabName module must declare its AzureRM provider requirement in versions.tf."
+    }
+    $providers = foreach ($provider in $providerNames) {
+        if ($provider -eq 'azurerm') {
+            @(
+                'provider "azurerm" {'
+                '  features {'
+                '    resource_group {'
+                '      prevent_deletion_if_contains_resources = false'
+                '    }'
+                '  }'
+                '}'
+                ''
+            )
+        }
+        else { @("provider `"$provider`" {}", '') }
+    }
+    Set-Content -LiteralPath (Join-Path $Directory 'providers.tf') -Value ($providers -join "`n") -Encoding utf8
+
+    $source = (Get-Content -LiteralPath (Join-Path $ModuleDirectory 'outputs.tf') -Raw) -replace "`r`n", "`n"
+    $blocks = [regex]::Matches($source, '(?ms)^output "([^"]+)" \{\n(.*?)^\}')
+    if ($blocks.Count -ne [regex]::Matches($source, '(?m)^output "').Count) {
+        throw "Cannot read all output definitions for $LabName."
+    }
+    $outputs = foreach ($block in $blocks) {
+        $name = $block.Groups[1].Value
+        $attributes = Get-LabBlockAttributes $block.Groups[2].Value
+        if (-not $attributes.ContainsKey('value')) { throw "Missing value for output $name in $LabName." }
+        "output `"$name`" {"
+        "  value = module.lab.$name"
+        foreach ($attribute in @('description', 'sensitive')) {
+            if ($attributes.ContainsKey($attribute)) { "  $attribute = $($attributes[$attribute])" }
+        }
+        '}'
+        ''
+    }
+    Set-Content -LiteralPath (Join-Path $Directory 'outputs.tf') -Value ($outputs -join "`n") -Encoding utf8
+
+    $main = @('module "lab" {', "  source = `"../../modules/labs/$LabName`"", '')
+    $main += $Variables | ForEach-Object { "  $($_.Name) = var.$($_.Name)" }
+    $main += '}'
+    Set-Content -LiteralPath (Join-Path $Directory 'main.tf') -Value $main -Encoding utf8
+
+    $template = @(
+        "# $LabName input reference generated from modules/labs/$LabName/variables.tf."
+        '# Working input overrides are saved in terraform.tfvars.json by the wizard.'
+        '# This .example file is not automatically loaded by Terraform.'
+        '# Optional assignments show module defaults; passwords are never included.'
+        ''
+    )
+    foreach ($variable in $Variables) {
+        $template += "# $($variable.Description)"
+        if ($variable.Sensitive) {
+            $template += @(
+                "# Sensitive input: supply through the wizard or TF_VAR_$($variable.Name)."
+                "# $($variable.Name) = `"<provided securely>`""
+            )
+        }
+        elseif ($variable.Required) {
+            $template += @('# Required (no default).', "# $($variable.Name) = `"<required>`"")
+        }
+        else {
+            $template += ("$($variable.Name) = $($variable.Default)" -split '\r?\n' |
+                ForEach-Object { "# $_" })
+        }
+        $template += ''
+    }
+    Set-Content -LiteralPath (Join-Path $Directory 'terraform.tfvars.example') -Value $template -Encoding utf8
 }
 
 function Convert-LabInput {
@@ -422,13 +508,15 @@ function Start-LabWizard {
     if ($Lab -notin @('a2a', 'backup-saphana', 'backup-sql', 'backup-vm', 'migrate-vmware', 'migrate-vmware-pe')) {
         throw "Unknown lab: $Lab"
     }
-    $example = Join-Path (Join-Path (Join-Path $script:RepositoryRoot 'labs') 'examples') $Lab
-    foreach ($file in @('variables.tf', 'outputs.tf', 'providers.tf', 'versions.tf', 'terraform.tfvars.example')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $example $file) -PathType Leaf)) {
-            throw "The $Lab example is missing $file. Restore the example before creating an environment."
+    $moduleDirectory = Join-Path (Join-Path (Join-Path $script:RepositoryRoot 'modules') 'labs') $Lab
+    if (-not $Resume) {
+        foreach ($file in @('main.tf', 'variables.tf', 'outputs.tf', 'versions.tf')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $moduleDirectory $file) -PathType Leaf)) {
+                throw "The $Lab module is missing $file. Restore the module before creating an environment."
+            }
         }
     }
-    $variablePath = if ($Resume) { Join-Path $directory 'variables.tf' } else { Join-Path $example 'variables.tf' }
+    $variablePath = if ($Resume) { Join-Path $directory 'variables.tf' } else { Join-Path $moduleDirectory 'variables.tf' }
     $variables = @(Get-LabVariables $variablePath)
     if (-not $Resume) {
         $values = Get-LabNameDefaults $Lab $EnvironmentName ([guid]::NewGuid().ToString('N').Substring(0, 8)) $variables
@@ -465,13 +553,7 @@ function Start-LabWizard {
         if (-not (Read-LabConfiguration $variables $values $secrets)) { Write-Host 'Cancelled. No files or resources were changed.'; return }
         if (-not $Resume) {
             New-Item -ItemType Directory -Path $directory | Out-Null
-            foreach ($file in @('variables.tf', 'outputs.tf', 'providers.tf', 'versions.tf', 'terraform.tfvars.example')) {
-                Copy-Item -LiteralPath (Join-Path $example $file) -Destination (Join-Path $directory $file)
-            }
-            $main = @('module "lab" {', "  source = `"../../modules/labs/$Lab`"", '')
-            $main += $variables | ForEach-Object { "  $($_.Name) = var.$($_.Name)" }
-            $main += '}'
-            Set-Content -LiteralPath (Join-Path $directory 'main.tf') -Value $main -Encoding utf8
+            New-LabSeedFiles -LabName $Lab -ModuleDirectory $moduleDirectory -Directory $directory -Variables $variables
             $metadata = @{
                 schemaVersion = 1
                 lab = $Lab

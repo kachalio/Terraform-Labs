@@ -67,7 +67,8 @@ For users unfamiliar with Terraform:
 ```
 
 The wizard selects a lab and Azure subscription, prompts for inputs, and creates
-an isolated environment under `labs\<environment-name>`. It previews changes
+an isolated environment under `labs\<environment-name>`, seeded directly from
+`modules/labs/<lab>` rather than the manual examples. It previews changes
 and requires typing `DEPLOY` before applying the reviewed plan. PowerShell 7 or
 later is required; Terraform and Azure CLI must be installed.
 

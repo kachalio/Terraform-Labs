@@ -160,11 +160,22 @@ try {
     $env:TF_WORKSPACE = 'prior-workspace'
 
     $workingRepository = Join-Path $temporary 'repository'
-    $examples = Join-Path (Join-Path $workingRepository 'labs') 'examples'
-    New-Item -ItemType Directory -Path $examples -Force | Out-Null
-    foreach ($lab in $labs) {
-        Copy-Item -LiteralPath (Join-Path (Join-Path (Join-Path $repository 'labs') 'examples') $lab) -Destination $examples -Recurse
+    New-Item -ItemType Directory -Path (Join-Path $workingRepository 'labs') -Force | Out-Null
+    $moduleRoot = Join-Path $repository 'modules'
+    foreach ($file in Get-ChildItem -LiteralPath $moduleRoot -Recurse -Filter '*.tf' |
+            Where-Object FullName -NotMatch '[\\/]\.terraform[\\/]') {
+        $relative = [System.IO.Path]::GetRelativePath($repository, $file.FullName)
+        $destination = Join-Path $workingRepository $relative
+        New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force | Out-Null
+        Copy-Item -LiteralPath $file.FullName -Destination $destination
     }
+    Assert-LabTest (-not (Test-Path -LiteralPath (Join-Path (Join-Path $workingRepository 'labs') 'examples'))) 'Run creation and resume without any example directories.'
+    $backupModule = Join-Path (Join-Path (Join-Path $workingRepository 'modules') 'labs') 'backup-vm'
+    $moduleVariablesPath = Join-Path $backupModule 'variables.tf'
+    $moduleVariables = (Get-Content -LiteralPath $moduleVariablesPath -Raw).Replace('"eastus2"', '"westus2"')
+    $moduleVariables += "`nvariable `"seed_note`" {`n  description = `"New module input`"`n  type = string`n  default = `"module-input`"`n}`n"
+    Set-Content -LiteralPath $moduleVariablesPath -Value $moduleVariables -Encoding utf8
+    Add-Content -LiteralPath (Join-Path $backupModule 'outputs.tf') -Value "`noutput `"seed_note`" {`n  value = var.seed_note`n  description = `"New module output`"`n  sensitive = true`n}`n" -Encoding utf8
     $script:RepositoryRoot = $workingRepository
     Reset-LabTest @('invalid', 'no')
     $inputValues = @{}
@@ -197,6 +208,33 @@ try {
         $directory = Join-Path (Join-Path $workingRepository 'labs') $name
         $main = Get-Content -LiteralPath (Join-Path $directory 'main.tf') -Raw
         Assert-LabTest ($main.Contains("source = `"../../modules/labs/$lab`"")) "Generate a correct module source for $lab."
+        $moduleDirectory = Join-Path (Join-Path (Join-Path $workingRepository 'modules') 'labs') $lab
+        foreach ($file in @('variables.tf', 'versions.tf')) {
+            Assert-LabTest ((Get-Content -LiteralPath (Join-Path $directory $file) -Raw) -ceq
+                (Get-Content -LiteralPath (Join-Path $moduleDirectory $file) -Raw)) "Seed $file directly from the $lab module."
+        }
+        $seededVariables = @(Get-LabVariables (Join-Path $moduleDirectory 'variables.tf'))
+        $template = (Get-Content -LiteralPath (Join-Path $directory 'terraform.tfvars.example') -Raw) -replace "`r`n", "`n"
+        foreach ($variable in $seededVariables) {
+            Assert-LabTest ($template -match "(?m)^# $($variable.Name) = ") "Include $($variable.Name) in the generated $lab template."
+            if (-not $variable.Required -and -not $variable.Sensitive) {
+                $default = ("$($variable.Name) = $($variable.Default)" -split '\r?\n' | ForEach-Object { "# $_" }) -join "`n"
+                Assert-LabTest ($template.Contains($default)) "Document the module default for $($variable.Name)."
+            }
+        }
+        $moduleOutputs = Get-Content -LiteralPath (Join-Path $moduleDirectory 'outputs.tf') -Raw
+        $rootOutputs = Get-Content -LiteralPath (Join-Path $directory 'outputs.tf') -Raw
+        foreach ($output in [regex]::Matches($moduleOutputs, '(?m)^output "([^"]+)"')) {
+            Assert-LabTest ($rootOutputs.Contains("value = module.lab.$($output.Groups[1].Value)")) "Forward $lab output $($output.Groups[1].Value)."
+        }
+        $providers = Get-Content -LiteralPath (Join-Path $directory 'providers.tf') -Raw
+        Assert-LabTest ($providers.Contains('prevent_deletion_if_contains_resources = false')) 'Retain the lab resource-group provider behavior.'
+        Assert-LabTest ($providers.Contains('provider "azapi"') -eq ($lab -eq 'backup-sql' -or $lab -like 'migrate*')) 'Configure AzAPI only when declared by the module.'
+        if ($lab -eq 'backup-vm') {
+            Assert-LabTest ($main.Contains('seed_note = var.seed_note')) 'Automatically forward newly added module inputs.'
+            Assert-LabTest ($rootOutputs.Contains('sensitive = true') -and $rootOutputs.Contains('description = "New module output"')) 'Preserve output sensitivity and descriptions.'
+            Assert-LabTest (@($seededVariables | Where-Object Name -EQ 'source_location')[0].Default -ceq '"westus2"') 'Use a changed module region default.'
+        }
         $inputs = Get-Content -LiteralPath (Join-Path $directory 'terraform.tfvars.json') -Raw | ConvertFrom-Json -AsHashtable
         Assert-LabTest (-not $inputs.ContainsKey('vm_admin_password') -and -not $inputs.ContainsKey('hana_master_password')) "Never persist passwords for $lab."
         if ($lab -eq 'backup-saphana') { Assert-LabTest ($inputs.vm_size -eq 'Standard_D4s_v5') 'Suggest 16 GB for HANA.' }
@@ -271,8 +309,16 @@ try {
         Assert-LabTest (Test-Path -LiteralPath (Join-Path $directory 'environment.json')) 'Retain the environment after failures.'
         Assert-LabTest ((Get-Content -LiteralPath $statePath -Raw).Trim() -ceq $state) 'Never delete or rewrite existing state on failure.'
     }
+    $savedSeedHashes = @{}
+    foreach ($file in @('main.tf', 'variables.tf', 'versions.tf', 'outputs.tf', 'providers.tf', 'terraform.tfvars.example')) {
+        $savedSeedHashes[$file] = (Get-FileHash -LiteralPath (Join-Path $directory $file)).Hash
+    }
+    Set-Content -LiteralPath $moduleVariablesPath -Value $moduleVariables.Replace('"westus2"', '"centralus"') -Encoding utf8
     Reset-LabTest @('', 'Test-only-not-a-real-credential!', '')
     Start-LabWizard -EnvironmentName 'test-backup-vm' -Resume -PlanOnly | Out-Null
+    foreach ($file in $savedSeedHashes.Keys) {
+        Assert-LabTest ((Get-FileHash -LiteralPath (Join-Path $directory $file)).Hash -ceq $savedSeedHashes[$file]) "Do not reseed $file during resume after module inputs change."
+    }
     Assert-LabTest (@($script:Calls | Where-Object Step -EQ 'apply').Count -eq 0) 'Resume in preview-only mode.'
     Assert-LabTest (@($script:Calls | Where-Object { $_.Command -eq 'az' -and 'set' -in $_.Arguments }).Count -eq 0) 'Do not change the global Azure CLI subscription.'
     $script:Subscription.id = '44444444-4444-4444-4444-444444444444'
@@ -298,14 +344,6 @@ try {
         }
         Set-LabProcessVariable 'TF_WORKSPACE' 'default'
         $terraform = (Get-Command terraform -CommandType Application).Source
-        $moduleRoot = Join-Path $repository 'modules'
-        foreach ($file in Get-ChildItem -LiteralPath $moduleRoot -Recurse -Filter '*.tf' |
-                Where-Object FullName -NotMatch '[\\/]\.terraform[\\/]') {
-            $relative = [System.IO.Path]::GetRelativePath($repository, $file.FullName)
-            $destination = Join-Path $workingRepository $relative
-            New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force | Out-Null
-            Copy-Item -LiteralPath $file.FullName -Destination $destination
-        }
         $providerCache = Join-Path $temporary 'provider-cache'
         New-Item -ItemType Directory -Path $providerCache | Out-Null
         Set-LabProcessVariable 'TF_PLUGIN_CACHE_DIR' $providerCache

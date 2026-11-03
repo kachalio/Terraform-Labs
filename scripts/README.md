@@ -17,6 +17,26 @@ still performs the infrastructure deployment behind the scenes.
 The launcher checks prerequisites but does not install software. Terraform's
 initialization downloads required providers when needed.
 
+## Seeding Source
+
+New environments are seeded directly from the selected reusable module under
+`modules/labs/<lab>`, not from `labs/examples`. The launcher copies the module's
+variable definitions and version/provider requirements, generates a wrapper
+forwarding every input and output, and generates a commented variable reference
+from the module's descriptions and defaults.
+
+Provider configuration stays in the generated deployment root. AzureRM retains
+the lab resource-group deletion setting; other declared providers receive default
+configurations. The reusable module itself does not configure providers.
+`labs/examples` remains available for manual deployment and documentation, but
+is not required to create or resume environments through the launcher.
+
+Resume reads the environment's saved variable definitions and leaves its seeded
+Terraform files and variable reference unchanged. Changes to module inputs or
+defaults affect newly created environments, not the saved input defaults of
+existing ones. The module implementation is still referenced locally, so changes
+to its resources can affect subsequent plans.
+
 ## Create a Lab
 
 From the repository root:
@@ -80,8 +100,9 @@ For example, the SQL data disk configuration accepts:
 [{"storage_account_type":"Standard_LRS","disk_size_gb":128}]
 ```
 
-Refer to the selected lab's copied `terraform.tfvars.example` for descriptions,
-complete defaults, and examples of complex values.
+Refer to the generated `terraform.tfvars.example` for input descriptions and
+complete commented module defaults. It is an input reference; the wizard saves
+your selected values separately in `terraform.tfvars.json`.
 
 Public IPs stay disabled unless you enable them. Review security rules before
 exposing access. A2A replication, VM backup protection, and SQL discovery are
