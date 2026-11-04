@@ -29,7 +29,7 @@ variable "vm_name" {
 variable "windows_vm_size" {
   description = "The size of the Windows VM"
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_D2s_v5"
 }
 
 variable "vm_admin_username" {

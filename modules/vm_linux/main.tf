@@ -42,11 +42,10 @@ resource "azurerm_linux_virtual_machine" "vm" {
   disable_password_authentication                        = "false"
   patch_mode                                             = "AutomaticByPlatform"
   bypass_platform_safety_checks_on_user_schedule_enabled = true
-
   secure_boot_enabled = var.secure_boot_enabled
 
   boot_diagnostics {
-
+    storage_account_uri = null
   }
 
   source_image_reference {
@@ -72,4 +71,24 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
 
   tags = var.tags
+}
+
+
+resource "azurerm_managed_disk" "vm_data_disk" {
+  count                = var.vm_data_disk_configuration == null ? 0 : length(var.vm_data_disk_configuration)
+  name                 = "${var.vm_name}-data-disk-${count.index + 1}"
+  location             = var.location
+  resource_group_name  = var.resource_group_name
+  storage_account_type = var.vm_data_disk_configuration[count.index].storage_account_type
+  create_option        = "Empty"
+  disk_size_gb         = var.vm_data_disk_configuration[count.index].disk_size_gb
+  tags                 = var.tags
+}
+
+resource "azurerm_virtual_machine_data_disk_attachment" "vm_data_disk_attachment" {
+  count                = var.vm_data_disk_configuration == null ? 0 : length(var.vm_data_disk_configuration)
+  managed_disk_id      = azurerm_managed_disk.vm_data_disk[count.index].id
+  virtual_machine_id   = azurerm_linux_virtual_machine.vm.id
+  lun                  = count.index
+  caching              = "ReadWrite"
 }
