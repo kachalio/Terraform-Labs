@@ -11,5 +11,8 @@ terraform {
     random = {
       source = "hashicorp/random"
     }
+    vsphere = {
+      source = "hashicorp/vsphere"
+    }
   }
 }

@@ -116,8 +116,9 @@ variable "migrate_project_name" {
 
 ### Appliance Variables ### 
 
-variable "deploy_appliance" {
-  description = "Whether to deploy the appliance VM"
-  type        = bool
-  default     = false
-}
+# removing this option for now.  need to troubleshoot it's functionality more, going for MVP now
+# variable "deploy_appliance" {
+#   description = "Whether to deploy the appliance VM"
+#   type        = bool
+#   default     = false
+# }
