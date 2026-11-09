@@ -131,6 +131,7 @@ module "linux_vm" {
   linux_vm_image                  = var.linux_vm_image
   vm_os_disk_storage_account_type = var.linux_vm_os_disk_storage_account_type
   secure_boot_enabled             = var.secure_boot_enabled_linux
+  vm_data_disk_configuration      = var.vm_data_disk_configuration
 
 
   tags = {
@@ -152,6 +153,7 @@ module "windows_vm" {
   windows_vm_image                = var.windows_vm_image
   vm_os_disk_storage_account_type = var.windows_vm_os_disk_storage_account_type
   secure_boot_enabled             = var.secure_boot_enabled_windows
+  vm_data_disk_configuration      = var.vm_data_disk_configuration
 
   tags = {
     "DeployedByTerraform" = "YouBetcha"
