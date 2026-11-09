@@ -25,6 +25,12 @@ variable definitions and version/provider requirements, generates a wrapper
 forwarding every input and output, and generates a commented variable reference
 from the module's descriptions and defaults.
 
+Input definitions are discovered in `variables.tf` and any `variables_*.tf`
+files (for example, `variables_appliance.tf`) directly inside the module.
+The launcher reads `variables.tf` first, then additional files in filename order,
+and copies all of them into the environment. Their inputs are included in the
+wizard, generated wrapper, and variable reference.
+
 Provider configuration stays in the generated deployment root. AzureRM retains
 the lab resource-group deletion setting; other declared providers receive default
 configurations. The reusable module itself does not configure providers.
@@ -36,6 +42,10 @@ Terraform files and variable reference unchanged. Changes to module inputs or
 defaults affect newly created environments, not the saved input defaults of
 existing ones. The module implementation is still referenced locally, so changes
 to its resources can affect subsequent plans.
+
+Resume discovers the same filename patterns in the saved environment, not in
+the module, so newly added module variable files are not pulled into existing
+environments.
 
 ## Create a Lab
 
@@ -172,6 +182,7 @@ Run the PowerShell tests without Azure access or third-party test frameworks:
 
 ```powershell
 pwsh -NoProfile -File .\tests\powershell\New-Lab.Tests.ps1
+pwsh -NoProfile -File .\tests\powershell\New-Lab.VariableFiles.Tests.ps1
 ```
 
 To also initialize, validate, and run mocked Terraform plans against all six

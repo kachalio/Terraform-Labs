@@ -86,6 +86,13 @@ function Get-LabBlockAttributes {
     return $attributes
 }
 
+function Get-LabVariableFiles {
+    param([string] $Directory)
+
+    Get-Item -LiteralPath (Join-Path $Directory 'variables.tf')
+    Get-ChildItem -LiteralPath $Directory -File -Filter 'variables_*.tf' | Sort-Object Name
+}
+
 function Get-LabVariables {
     param([string] $Path)
 
@@ -113,9 +120,10 @@ function Get-LabVariables {
 function New-LabSeedFiles {
     param([string] $LabName, [string] $ModuleDirectory, [string] $Directory, [object[]] $Variables)
 
-    foreach ($file in @('variables.tf', 'versions.tf')) {
-        Copy-Item -LiteralPath (Join-Path $ModuleDirectory $file) -Destination (Join-Path $Directory $file)
+    foreach ($file in Get-LabVariableFiles $ModuleDirectory) {
+        Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $Directory $file.Name)
     }
+    Copy-Item -LiteralPath (Join-Path $ModuleDirectory 'versions.tf') -Destination (Join-Path $Directory 'versions.tf')
     $versions = Get-Content -LiteralPath (Join-Path $ModuleDirectory 'versions.tf') -Raw
     $providerNames = @([regex]::Matches($versions, '(?m)^    ([a-z][a-z0-9_]*)\s*=\s*\{') |
         ForEach-Object { $_.Groups[1].Value })
@@ -164,7 +172,7 @@ function New-LabSeedFiles {
     Set-Content -LiteralPath (Join-Path $Directory 'main.tf') -Value $main -Encoding utf8
 
     $template = @(
-        "# $LabName input reference generated from modules/labs/$LabName/variables.tf."
+        "# $LabName input reference generated from modules/labs/$LabName/variables.tf and variables_*.tf."
         '# Working input overrides are saved in terraform.tfvars.json by the wizard.'
         '# This .example file is not automatically loaded by Terraform.'
         '# Optional assignments show module defaults; passwords are never included.'
@@ -516,8 +524,10 @@ function Start-LabWizard {
             }
         }
     }
-    $variablePath = if ($Resume) { Join-Path $directory 'variables.tf' } else { Join-Path $moduleDirectory 'variables.tf' }
-    $variables = @(Get-LabVariables $variablePath)
+    $variableDirectory = if ($Resume) { $directory } else { $moduleDirectory }
+    $variables = @(foreach ($file in Get-LabVariableFiles $variableDirectory) {
+        Get-LabVariables $file.FullName
+    })
     if (-not $Resume) {
         $values = Get-LabNameDefaults $Lab $EnvironmentName ([guid]::NewGuid().ToString('N').Substring(0, 8)) $variables
     }
