@@ -11,20 +11,6 @@ data "azurerm_subscription" "primary" {}
 # My account details
 data "azurerm_client_config" "current" {}
 
-resource "random_string" "migration_random_string" {
-  length  = 4
-  special = false
-  upper   = false
-  numeric = true
-}
-
-resource "random_string" "blob_random_string" {
-  length  = 4
-  special = false
-  upper   = false
-  numeric = true
-}
-
 # Resource Group for project
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
@@ -77,7 +63,6 @@ resource "azapi_resource" "migrate_project" {
   tags = ({
     "Migrate Project" = var.migrate_project_name
   })
-
 
 }
 
@@ -153,3 +138,33 @@ resource "azapi_resource" "migrate_server_solutions" {
   }
 }
 
+
+### Appliance Deployment ###
+
+module "appliance" {
+  source = "../../vm_vmware_clone"
+  
+  count = var.deploy_appliance ? 1 : 0
+
+  vsphere_user           = var.vsphere_user
+  vsphere_password       = var.vsphere_password
+  vsphere_server         = var.vsphere_server
+  vsphere_datacenter     = var.vsphere_datacenter
+  vsphere_datastore      = var.vsphere_datastore
+  vsphere_compute_cluster = var.vsphere_compute_cluster
+  vsphere_network        = var.vsphere_network
+  vsphere_template       = var.vsphere_template
+  vsphere_resource_pool  = var.vsphere_resource_pool
+  vsphere_folder          = var.vsphere_folder
+
+  vm_name                = var.vm_name
+  vm_hostname            = var.vm_hostname
+  vm_admin_password       = var.vm_admin_password
+  vm_num_cpus            = var.vm_num_cpus
+  vm_memory              = var.vm_memory
+  vm_firmware            = var.vm_firmware
+  vm_network_adapter_type = var.vm_network_adapter_type
+  vm_disk_size           = var.vm_disk_size
+  vm_thin_provisioned    = var.vm_thin_provisioned
+  vm_data_disks          = var.vm_data_disks
+}

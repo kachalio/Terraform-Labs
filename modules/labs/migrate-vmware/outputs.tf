@@ -17,3 +17,11 @@ output "vnet_id" {
 output "subnet_id" {
   value = module.source_network.subnet_id
 }
+
+output "appliance_ip" {
+  value = module.appliance[0].server_ip
+}
+
+output "server_name" {
+  value = module.appliance[0].server_name
+}

@@ -113,3 +113,11 @@ variable "migrate_project_name" {
   type        = string
 
 }
+
+### Appliance Variables ### 
+
+variable "deploy_appliance" {
+  description = "Whether to deploy the appliance VM"
+  type        = bool
+  default     = false
+}
