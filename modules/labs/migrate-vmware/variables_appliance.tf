@@ -71,7 +71,7 @@ variable "vm_hostname" {
 variable "vm_firmware" {
   description = "The firmware type for the VM (e.g., bios or efi)"
   type        = string
-  default     = "bios"
+  default     = "efi"
 }
 
 variable "vm_num_cpus" {
