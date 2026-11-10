@@ -114,11 +114,10 @@ variable "migrate_project_name" {
 
 }
 
-### Appliance Variables ### 
+### Project Appliance Variables ### 
 
-# removing this option for now.  need to troubleshoot it's functionality more, going for MVP now
-# variable "deploy_appliance" {
-#   description = "Whether to deploy the appliance VM"
-#   type        = bool
-#   default     = false
-# }
+variable "project_appliance_name" {
+  description = "The name of the appliance created in your project"
+  type        = string
+  default     = "myAppliance"
+}

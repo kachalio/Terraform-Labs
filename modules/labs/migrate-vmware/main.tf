@@ -1,3 +1,10 @@
+###
+### This configuration deployes the following resources:
+### - Azure Migrate Project
+### - Azure Migrate Project Solutions (Assessment, Discovery, Migration, Data Replication)
+### - VMware Server Appliance Deployment
+###
+
 locals {
 
   tags = tomap({
