@@ -19,9 +19,9 @@ output "subnet_id" {
 }
 
 output "appliance_ip" {
-  value = module.appliance[0].server_ip
+  value = module.appliance.server_ip
 }
 
 output "server_name" {
-  value = module.appliance[0].server_name
+  value = module.appliance.server_name
 }

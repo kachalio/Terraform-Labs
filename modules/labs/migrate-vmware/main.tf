@@ -139,7 +139,7 @@ resource "azapi_resource" "migrate_server_solutions" {
 }
 
 
-### Appliance Deployment ###
+### VMware Server Appliance Deployment ###
 
 module "appliance" {
   source = "../../vm_vmware_clone"
