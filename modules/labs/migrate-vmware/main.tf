@@ -121,7 +121,6 @@ locals {
       status  = "Inactive"
       details = null
     }
-
   }
 }
 
@@ -133,6 +132,7 @@ resource "azapi_resource" "migrate_server_solutions" {
   name                      = each.value.name
   parent_id                 = azapi_resource.migrate_project.id
   depends_on                = [module.source_network]
+
 
   body = {
     properties = {

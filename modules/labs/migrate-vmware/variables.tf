@@ -121,3 +121,9 @@ variable "project_appliance_name" {
   type        = string
   default     = "myAppliance"
 }
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

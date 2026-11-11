@@ -21,7 +21,9 @@ resource "azurerm_key_vault" "kv" {
   resource_group_name        = azurerm_resource_group.rg.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  rbac_authorization_enabled = true
+  rbac_authorization_enabled = false
+  public_network_access_enabled = true
+  tags = var.tags
 
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
@@ -45,9 +47,38 @@ resource "azurerm_key_vault" "kv" {
   }
 }
 
+### Creates an authentication certificate
+resource "azurerm_key_vault_certificate" "kv_cert" {
+  name = "${var.project_appliance_name}${random_string.random.result}agentauthcert"
+  # depends_on = [ module.migrate_project.azurerm_key_vault_access_policy.kvap ]
+  key_vault_id = azurerm_key_vault.kv.id
+
+  certificate_policy {
+    issuer_parameters {
+      name = "Self"
+    }
+
+    key_properties {
+      exportable = true
+      key_size   = 2048
+      key_type   = "RSA"
+      reuse_key  = true
+    }
+
+    secret_properties {
+      content_type = "application/x-pkcs12"
+    }
+
+    x509_certificate_properties {
+      subject            = "CN=AgentSpnCert"
+      validity_in_months = 12
+      key_usage          = ["cRLSign", "dataEncipherment", "digitalSignature", "keyEncipherment", "keyAgreement", "keyCertSign"]
+    }
+  }
+}
 
 
-### Creates the VMware Site.  This is also what creates the appliance object.
+### Creates the VMware Site.  
 resource "azapi_resource" "vmwaresite" {
   schema_validation_enabled = false
   type                      = "Microsoft.OffAzure/VMwareSites@2020-07-10"
@@ -58,18 +89,17 @@ resource "azapi_resource" "vmwaresite" {
   tags                      = { MigrateProject = azapi_resource.migrate_project.name }
   response_export_values    = ["*"]
 
-  body = jsonencode({
+  body = {
     kind = "Migrate",
     properties = {
       agentDetails = {
         keyVaultId  = "${azurerm_key_vault.kv.id}",
         keyVaultUri = "${azurerm_key_vault.kv.vault_uri}"
       },
-      applianceName = "${var.project_appliance_name}",
-      # discoverySolutionId = jsondecode(azapi_resource_action.put_server_discovery.output).id
+      applianceName       = "${var.project_appliance_name}",
       discoverySolutionId = azapi_resource.migrate_server_solutions["discovery"].id
     }
-  })
+  }
 }
 
 
@@ -105,16 +135,39 @@ resource "azapi_resource" "dependency_map_discovery_sources" {
   }
 }
 
+locals {
+  master_site_name = "${local.name_prefix}mastersite"
+}
+
 ### Creates the MasterSite
 resource "azapi_resource" "master_site" {
   schema_validation_enabled = false
-  type                      = "Microsoft.OffAzure/VMwareSites/masterSites@2025-12-12-preview"
-  name                      = "${local.name_prefix}mastersite"
-  parent_id                 = azurerm_resource_group.rg.id
-  location                  = azapi_resource.migrate_project.location
-  tags                      = { MigrateProject = azapi_resource.migrate_project.name }
+  type                      = "Microsoft.OffAzure/MasterSites@2025-12-12-preview"
+  name                      = local.master_site_name
+  #   parent_id                 = azapi_resource.vmwaresite.id
+  parent_id = azurerm_resource_group.rg.id
+  location  = azapi_resource.migrate_project.location
+  tags      = { MigrateProject = azapi_resource.migrate_project.name }
+
+  body = {
+    kind = "Migrate"
+    properties = {
+      sites = concat(
+        [azapi_resource.vmwaresite.id],
+        [for artifact in azapi_resource.appliance_artifacts : artifact.id],
+        [azapi_resource.dependency_map.id]
+      )
+      allowMultipleSites = true
+    }
+  }
+
+  lifecycle {
+    # The post-creation update owns site membership after initial creation.
+    ignore_changes = [body.properties.sites]
+  }
 }
 
+### Creating an object to store details for the sites associated with the master site
 locals {
   master_site_sites = [
     {
@@ -143,23 +196,25 @@ resource "azapi_resource" "master_site_sites" {
   response_export_values    = ["*"]
 
 
-  body = jsonencode({
+  body = {
     kind = "Migrate"
     properties = {
-      discovery_solution_id = azapi_resource.migrate_server_solutions["discovery"].id
+      discoverySolutionId = azapi_resource.migrate_server_solutions["discovery"].id
       siteAppliancePropertiesCollection = [
         {
           agentDetails = {
             keyVaultId  = azurerm_key_vault.kv.id
             keyVaultUri = azurerm_key_vault.kv.vault_uri
           }
-          appliancename = var.project_appliance_name
+          applianceName = var.project_appliance_name
         }
       ]
     }
-  })
+  }
 }
 
+
+### Creating an object to store details for the appliance artifacts associated with the project.
 locals {
   appliance_artifacts = [
     {
@@ -200,11 +255,13 @@ resource "azapi_resource" "appliance_artifacts" {
   location                  = azapi_resource.migrate_project.location
   tags                      = { MigrateProject = azapi_resource.migrate_project.name }
 
-  body = jsonencode({
+  body = {
     properties = {
-      masterSiteId = azapi_resource.master_site.id
+    #   masterSiteId     = azapi_resource.master_site.id
+      masterSiteId = "${azurerm_resource_group.rg.id}/providers/Microsoft.OffAzure/MasterSites/${local.master_site_name}"
+      migrateProjectId = azapi_resource.migrate_project.id
     }
-  })
+  }
 }
 
 
@@ -243,6 +300,7 @@ resource "azurerm_recovery_services_vault" "vault" {
   }
 }
 
+### Data Replication Vault creation
 resource "azapi_resource" "datareplication_vault" {
   schema_validation_enabled = false
   type                      = "Microsoft.DataReplication/replicationVaults@2026-05-01"
@@ -258,3 +316,122 @@ resource "azapi_resource" "datareplication_vault" {
   }
 }
 
+### Link Project to Data Replication Vault
+resource "azapi_resource" "link_project_to_data_replication_vault" {
+  schema_validation_enabled = false
+  type      = "Microsoft.Resources/links@2016-09-01"
+  parent_id = azapi_resource.migrate_project.id
+  name      = "projecttodatavaultlink"
+  body = {
+    properties = {
+      notes    = ""
+      targetId = azapi_resource.datareplication_vault.id
+    }
+  }
+}
+
+
+### Register an Appliance Under A Master Site
+resource "azapi_resource_action" "appliance_registration_info" {
+  type                   = "Microsoft.OffAzure/MasterSites@2020-11-11-preview"
+  resource_id            = azapi_resource.master_site.id
+  action                 = "applianceRegistrationInfo"
+  method                 = "POST"
+  depends_on = [ azapi_resource.appliance_artifacts, azapi_resource.master_site_sites ]
+
+  response_export_values = ["*"]
+  body = {
+    applianceName = var.project_appliance_name
+  }
+}
+
+### Register tools in the project
+
+resource "azapi_resource_action" "register_tools_in_project" {
+  for_each               = azapi_resource.migrate_server_solutions
+  type                   = "Microsoft.Migrate/migrateprojects@2020-06-01-preview"
+  resource_id            = azapi_resource.migrate_project.id
+  action                 = "registerTool"
+  method                 = "POST"
+  depends_on = [ azapi_resource_action.appliance_registration_info ]
+
+  response_export_values = ["*"]
+  body = {
+    tool = each.value.body.properties.tool
+  }
+}
+
+### Update Project Solutions
+
+# This locals was made to store extended details for each tool used in the project
+# These extended details can't be kept in the locals created for the resource creation because it will cause a circular dependency
+# the update solution resource below loops through each of the migrate_server_solutions created in main.tf, then updates the extended details
+# using the extended_details_by_tool local variable.
+locals {
+  update_solution_details_by_tool = {
+    ServerAssessment = {
+      extendedDetails = {
+        projectId = azapi_resource.assessmentproject.id
+      }
+      status = "Active"
+
+    }
+
+    ServerDiscovery = {
+      extendedDetails = {
+        supportedScenarioSites     = "{\"SqlSites\":\"${azapi_resource.master_site_sites["sqlsites"].id}\",\"WebAppSites\":\"${azapi_resource.master_site_sites["webappsites"].id}\"}"
+        keyVaultId                 = "${azurerm_key_vault.kv.id}"
+        keyVaultUrl                = "${azurerm_key_vault.kv.vault_uri}"
+        masterSiteId               = "${azapi_resource.master_site.id}"
+        applianceNameToSiteIdMapV3 = "[{\"${var.project_appliance_name}\":{\"ApplianceName\":\"${var.project_appliance_name}\",\"SiteId\":\"${azapi_resource.vmwaresite.id}\",\"AadAppDetails\":{\"TenantID\":\"\",\"AppName\":\"\",\"AppID\":\"\",\"ObjectID\":\"\"},\"KeyVaultId\":\"${azurerm_key_vault.kv.id}\",\"KeyVaultUrl\":\"${azurerm_key_vault.kv.vault_uri}\",\"CertificateContents\":{\"${azurerm_key_vault_certificate.kv_cert.name}\":\"\"},\"supportAzStackTarget\":false}}]"
+      }
+      status = "Inactive"
+    }
+
+    ServerMigration = {
+        extendedDetails = {
+          vaultId = azurerm_recovery_services_vault.vault.id
+        }
+        status = "Active"
+    }
+
+    ServerMigration_DataReplication = {
+      extendedDetails = {
+        vaultId = azapi_resource.datareplication_vault.id
+      }
+      status = "Inactive"
+    }
+  }
+}
+
+resource "azapi_update_resource" "update_solution" {
+  for_each    = azapi_resource.migrate_server_solutions
+  type        = each.value.type
+  resource_id = each.value.id
+  depends_on = [ azapi_resource_action.appliance_registration_info ]
+
+  body = {
+    id   = each.value.id
+    name = each.value.name
+    properties = {
+      tool         = each.value.body.properties.tool
+      purpose      = each.value.body.properties.purpose
+      goal         = each.value.body.properties.goal
+      status       = local.update_solution_details_by_tool[each.value.body.properties.tool].status
+      cleanupState = "None"
+      summary = {
+        instanceType      = "Servers"
+        discoveredCount   = 0
+        assessedCount     = 0
+        replicatingCount  = 0
+        testMigratedCount = 0
+        migratedCount     = 0
+      }
+      details = {
+        groupCount      = 0
+        assessmentCount = 0
+        extendedDetails = local.update_solution_details_by_tool[each.value.body.properties.tool].extendedDetails
+      }
+    }
+  }
+}
