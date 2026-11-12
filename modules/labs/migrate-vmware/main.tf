@@ -132,6 +132,10 @@ resource "azapi_resource" "migrate_server_solutions" {
   name                      = each.value.name
   parent_id                 = azapi_resource.migrate_project.id
   depends_on                = [module.source_network]
+  # Ignore changes to the body of the resource.  This is updated later, and those changes should be preserved.
+  lifecycle {
+    ignore_changes = [body]
+  }
 
 
   body = {

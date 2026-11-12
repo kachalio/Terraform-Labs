@@ -194,6 +194,10 @@ resource "azapi_resource" "master_site_sites" {
   tags                      = { MigrateProject = azapi_resource.migrate_project.name }
   depends_on                = [azapi_resource.master_site]
   response_export_values    = ["*"]
+  lifecycle {
+    # The post-creation update owns site appliance properties after initial creation.
+    ignore_changes = [output]
+  }
 
 
   body = {
