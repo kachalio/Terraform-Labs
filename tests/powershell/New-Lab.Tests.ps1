@@ -198,7 +198,7 @@ try {
     for ($index = 0; $index -lt $labs.Count; $index++) {
         $lab = $labs[$index]
         $name = "test-$lab"
-        $answers = @('1')
+        $answers = @('1', '1')
         if ($lab -notlike 'migrate*') { $answers += @('', 'Test-only-not-a-real-credential!') }
         else { $answers += '' }
         if ($lab -eq 'backup-saphana') { $answers += 'Test-only-not-a-real-credential!' }
@@ -235,7 +235,7 @@ try {
             Assert-LabTest ($rootOutputs.Contains('sensitive = true') -and $rootOutputs.Contains('description = "New module output"')) 'Preserve output sensitivity and descriptions.'
             Assert-LabTest (@($seededVariables | Where-Object Name -EQ 'source_location')[0].Default -ceq '"westus2"') 'Use a changed module region default.'
         }
-        $inputs = Get-Content -LiteralPath (Join-Path $directory 'terraform.tfvars.json') -Raw | ConvertFrom-Json -AsHashtable
+        $inputs = Read-LabValues (Join-Path $directory 'terraform.tfvars')
         Assert-LabTest (-not $inputs.ContainsKey('vm_admin_password') -and -not $inputs.ContainsKey('hana_master_password')) "Never persist passwords for $lab."
         if ($lab -eq 'backup-saphana') { Assert-LabTest ($inputs.vm_size -eq 'Standard_D4s_v5') 'Suggest 16 GB for HANA.' }
         if ($inputs.ContainsKey('windows_vm_name_prefix')) {
@@ -331,7 +331,7 @@ try {
     foreach ($name in @('examples', '..\escape', 'CON', 'com1', 'a', 'invalid/name')) {
         Assert-LabThrows { Start-LabWizard -Lab backup-vm -EnvironmentName $name } 'Reserved folder names'
     }
-    Reset-LabTest @('1', '', 'Test-only-not-a-real-credential!', 'q')
+    Reset-LabTest @('1', '1', '', 'Test-only-not-a-real-credential!', 'q')
     $script:NeedLogin = $true
     Start-LabWizard -Lab backup-vm -EnvironmentName 'cancelled-lab' | Out-Null
     Assert-LabTest (@($script:Calls | Where-Object Step -EQ 'login').Count -eq 1) 'Offer device-code login when no Azure subscriptions are cached.'

@@ -237,97 +237,21 @@ variable "secure_boot_enabled" {
   default     = false
 }
 
+variable "vm_data_disk_configuration" {
+  description = "Configuration for the data disk attached to the Windows VM"
+  type = list(object({
+    storage_account_type = string
+    disk_size_gb         = number
+  }))
+  default = null
+}
+
+
 ### Linux VM ###
-
-variable "linux_vm_count" {
-  description = "The number of Linux VMs to create"
-  type        = number
-  default     = 1
-}
-
-variable "linux_vm_name_prefix" {
-  description = "The prefix for the Linux VM name"
-  type        = string
-  default     = "lin-vm"
-}
-
-variable "vm_size" {
-  description = "The size of the virtual machine"
-  type        = string
-  default     = "Standard_D2s_v5"
-}
-
-variable "linux_vm_image" {
-  description = "The image reference for the Linux VM"
-  type = object({
-    publisher = string
-    offer     = string
-    sku       = string
-    version   = string
-  })
-  default = {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
-    version   = "latest"
-  }
-}
-
-variable "linux_vm_os_disk_storage_account_type" {
-  description = "The storage account type for the Linux VM OS disk"
-  type        = string
-  default     = "Standard_LRS"
-}
-
-variable "secure_boot_enabled_linux" {
-  description = "Whether secure boot is enabled for the Linux VMs"
-  type        = bool
-  default     = true
-}
-
-
+# See variables_linux_vm.terraform 
 
 ### Windows VM ###
-
-variable "windows_vm_name_prefix" {
-  description = "The prefix for the Windows VM name"
-  type        = string
-  default     = "win-vm"
-}
-
-variable "windows_vm_count" {
-  description = "The number of Windows VMs to create"
-  type        = number
-  default     = 1
-}
-
-variable "windows_vm_image" {
-  description = "The image reference for the Windows VM"
-  type = object({
-    publisher = string
-    offer     = string
-    sku       = string
-    version   = string
-  })
-  default = {
-    publisher = "MicrosoftWindowsServer"
-    offer     = "WindowsServer"
-    sku       = "2025-datacenter-g2"
-    version   = "latest"
-  }
-}
-
-variable "windows_vm_os_disk_storage_account_type" {
-  description = "The storage account type for the Windows VM OS disk"
-  type        = string
-  default     = "Standard_LRS"
-}
-
-variable "secure_boot_enabled_windows" {
-  description = "Whether secure boot is enabled for the Windows VMs"
-  type        = bool
-  default     = true
-}
+# See variables_windows_vm.terraform 
 
 ### Enabling ASR stuff ###
 variable "enable_replication" {

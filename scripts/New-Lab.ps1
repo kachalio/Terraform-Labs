@@ -86,6 +86,13 @@ function Get-LabBlockAttributes {
     return $attributes
 }
 
+function Get-LabVariableFiles {
+    param([string] $Directory)
+
+    Get-Item -LiteralPath (Join-Path $Directory 'variables.tf')
+    Get-ChildItem -LiteralPath $Directory -File -Filter 'variables_*.tf' | Sort-Object Name
+}
+
 function Get-LabVariables {
     param([string] $Path)
 
@@ -113,9 +120,10 @@ function Get-LabVariables {
 function New-LabSeedFiles {
     param([string] $LabName, [string] $ModuleDirectory, [string] $Directory, [object[]] $Variables)
 
-    foreach ($file in @('variables.tf', 'versions.tf')) {
-        Copy-Item -LiteralPath (Join-Path $ModuleDirectory $file) -Destination (Join-Path $Directory $file)
+    foreach ($file in Get-LabVariableFiles $ModuleDirectory) {
+        Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $Directory $file.Name)
     }
+    Copy-Item -LiteralPath (Join-Path $ModuleDirectory 'versions.tf') -Destination (Join-Path $Directory 'versions.tf')
     $versions = Get-Content -LiteralPath (Join-Path $ModuleDirectory 'versions.tf') -Raw
     $providerNames = @([regex]::Matches($versions, '(?m)^    ([a-z][a-z0-9_]*)\s*=\s*\{') |
         ForEach-Object { $_.Groups[1].Value })
@@ -131,6 +139,17 @@ function New-LabSeedFiles {
                 '      prevent_deletion_if_contains_resources = false'
                 '    }'
                 '  }'
+                '}'
+                ''
+            )
+        }
+        elseif ($provider -eq 'vsphere') {
+            @(
+                'provider "vsphere" {'
+                '  user           = var.vsphere_user'
+                '  password       = var.vsphere_password'
+                '  vsphere_server = var.vsphere_server'
+                '  allow_unverified_ssl = true'
                 '}'
                 ''
             )
@@ -164,8 +183,8 @@ function New-LabSeedFiles {
     Set-Content -LiteralPath (Join-Path $Directory 'main.tf') -Value $main -Encoding utf8
 
     $template = @(
-        "# $LabName input reference generated from modules/labs/$LabName/variables.tf."
-        '# Working input overrides are saved in terraform.tfvars.json by the wizard.'
+        "# $LabName input reference generated from modules/labs/$LabName/variables.tf and variables_*.tf."
+        '# Working input overrides are saved in terraform.tfvars by the wizard.'
         '# This .example file is not automatically loaded by Terraform.'
         '# Optional assignments show module defaults; passwords are never included.'
         ''
@@ -188,6 +207,80 @@ function New-LabSeedFiles {
         $template += ''
     }
     Set-Content -LiteralPath (Join-Path $Directory 'terraform.tfvars.example') -Value $template -Encoding utf8
+}
+
+function ConvertTo-LabHclLiteral {
+    param([AllowNull()] [object] $Value)
+
+    $literal = ConvertTo-Json -InputObject $Value -Depth 100 -Compress
+    # HCL strings use different control escapes and must not evaluate templates.
+    $literal = $literal -replace '(?<!\\)((?:\\\\)*)\\b', '$1\u0008'
+    $literal = $literal -replace '(?<!\\)((?:\\\\)*)\\f', '$1\u000c'
+    return $literal.Replace('${', '$${').Replace('%{', '%%{')
+}
+
+function Write-LabEditableValues {
+    param([string] $Path, [object[]] $Variables, [hashtable] $Values)
+
+    $lines = @(
+        '# Edit these inputs before running Terraform manually.'
+        '# Replace required null placeholders; supply secrets through TF_VAR_* environment variables.'
+        ''
+    )
+    foreach ($variable in $Variables) {
+        $lines += "# $($variable.Description)"
+        if ($variable.Sensitive) {
+            $lines += "# Sensitive input: supply through TF_VAR_$($variable.Name); do not save secrets here."
+        }
+        else {
+            $literal = if ($Values.ContainsKey($variable.Name)) {
+                ConvertTo-LabHclLiteral $Values[$variable.Name]
+            }
+            elseif ($variable.Required) {
+                $lines += '# Required: replace null with a value before planning.'
+                'null'
+            }
+            else { $variable.Default }
+            $lines += "$($variable.Name) = $literal"
+        }
+        $lines += ''
+    }
+    Set-Content -LiteralPath $Path -Value $lines -Encoding utf8
+}
+
+function Write-LabValues {
+    param([string] $Path, [hashtable] $Values)
+
+    $lines = @('# Wizard input overrides: one JSON-compatible HCL literal per line.')
+    foreach ($name in $Values.Keys | Sort-Object) {
+        $literal = ConvertTo-LabHclLiteral $Values[$name]
+        $lines += "$name = $literal"
+    }
+    Set-Content -LiteralPath $Path -Value $lines -Encoding utf8
+}
+
+function Read-LabValues {
+    param([string] $Path)
+
+    $values = @{}
+    $lineNumber = 0
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        $lineNumber++
+        if ($line -match '^\s*(#.*)?$') { continue }
+        if ($line -notmatch '^\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*=\s*(.+?)\s*$') {
+            throw "Cannot read ${Path}:$lineNumber. Expected name = literal on one line; edit inputs through the wizard."
+        }
+        $name = $Matches[1]
+        $literal = $Matches[2].Replace('$${', '${').Replace('%%{', '%{')
+        if ($values.ContainsKey($name)) { throw "Duplicate input '$name' in ${Path}:$lineNumber." }
+        try {
+            $values[$name] = ConvertFrom-Json -InputObject $literal -AsHashtable -NoEnumerate -Depth 100
+        }
+        catch [System.ArgumentException] {
+            throw "Cannot read ${Path}:$lineNumber. Expected a JSON-compatible HCL literal; edit inputs through the wizard. $($_.Exception.Message)"
+        }
+    }
+    return $values
 }
 
 function Convert-LabInput {
@@ -465,6 +558,7 @@ function Start-LabWizard {
     if ([version] $version.terraform_version -lt [version] '1.1.0') { throw 'Terraform 1.1 or later is required.' }
 
     $metadata = $null
+    $editFile = $false
     if ($Resume) {
         if (-not $EnvironmentName) { throw 'Specify -EnvironmentName when using -Resume.' }
     }
@@ -490,7 +584,8 @@ function Start-LabWizard {
     }
     $directory = Join-Path (Join-Path $script:RepositoryRoot 'labs') $EnvironmentName
     $metadataPath = Join-Path $directory 'environment.json'
-    $valuesPath = Join-Path $directory 'terraform.tfvars.json'
+    $valuesPath = Join-Path $directory 'terraform.tfvars'
+    $legacyValuesPath = Join-Path $directory 'terraform.tfvars.json'
     if ($Resume) {
         if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
             throw "No launcher-created environment named $EnvironmentName was found."
@@ -500,13 +595,31 @@ function Start-LabWizard {
             throw 'The environment metadata is unsupported or does not match the selected lab.'
         }
         $Lab = $metadata.lab
-        $values = Get-Content -LiteralPath $valuesPath -Raw | ConvertFrom-Json -AsHashtable
+        if ('inputMode' -in $metadata.PSObject.Properties.Name -and $metadata.inputMode -eq 'file') {
+            throw 'This environment uses manually edited HCL inputs. Edit terraform.tfvars and run Terraform directly; -Resume will not overwrite this file.'
+        }
+        if (Test-Path -LiteralPath $valuesPath -PathType Leaf) {
+            if (Test-Path -LiteralPath $legacyValuesPath -PathType Leaf) {
+                throw 'Both terraform.tfvars and terraform.tfvars.json exist. Keep only the intended input file before resuming.'
+            }
+            $values = Read-LabValues $valuesPath
+        }
+        else {
+            $values = Get-Content -LiteralPath $legacyValuesPath -Raw | ConvertFrom-Json -AsHashtable
+        }
     }
     elseif (Test-Path -LiteralPath $directory) {
         throw "$directory already exists. Choose a new name, or use -Resume for a launcher-created environment."
     }
     if ($Lab -notin @('a2a', 'backup-saphana', 'backup-sql', 'backup-vm', 'migrate-vmware', 'migrate-vmware-pe')) {
         throw "Unknown lab: $Lab"
+    }
+    if (-not $Resume) {
+        $inputMode = Read-LabChoice 'How would you like to configure the deployment?' @(
+            @{ Name = 'wizard'; Title = 'Enter values individually through the wizard' }
+            @{ Name = 'file'; Title = 'Create deployment files and exit so I can edit terraform.tfvars' }
+        ) { param($item) $item.Title }
+        $editFile = $inputMode.Name -eq 'file'
     }
     $moduleDirectory = Join-Path (Join-Path (Join-Path $script:RepositoryRoot 'modules') 'labs') $Lab
     if (-not $Resume) {
@@ -516,8 +629,10 @@ function Start-LabWizard {
             }
         }
     }
-    $variablePath = if ($Resume) { Join-Path $directory 'variables.tf' } else { Join-Path $moduleDirectory 'variables.tf' }
-    $variables = @(Get-LabVariables $variablePath)
+    $variableDirectory = if ($Resume) { $directory } else { $moduleDirectory }
+    $variables = @(foreach ($file in Get-LabVariableFiles $variableDirectory) {
+        Get-LabVariables $file.FullName
+    })
     if (-not $Resume) {
         $values = Get-LabNameDefaults $Lab $EnvironmentName ([guid]::NewGuid().ToString('N').Substring(0, 8)) $variables
     }
@@ -550,7 +665,10 @@ function Start-LabWizard {
     if ($Lab -eq 'backup-saphana') { Write-Host 'A 16 GB VM size is suggested for HANA; installation and manual backup setup take additional time.' }
     $secrets = @{}
     try {
-        if (-not (Read-LabConfiguration $variables $values $secrets)) { Write-Host 'Cancelled. No files or resources were changed.'; return }
+        if (-not $editFile -and -not (Read-LabConfiguration $variables $values $secrets)) {
+            Write-Host 'Cancelled. No files or resources were changed.'
+            return
+        }
         if (-not $Resume) {
             New-Item -ItemType Directory -Path $directory | Out-Null
             New-LabSeedFiles -LabName $Lab -ModuleDirectory $moduleDirectory -Directory $directory -Variables $variables
@@ -560,10 +678,27 @@ function Start-LabWizard {
                 name = $EnvironmentName
                 subscriptionId = $subscription.id
                 tenantId = $subscription.tenantId
+                inputMode = if ($editFile) { 'file' } else { 'wizard' }
             }
             $metadata | ConvertTo-Json | Set-Content -LiteralPath $metadataPath -Encoding utf8
         }
-        ConvertTo-Json -InputObject $values -Depth 100 | Set-Content -LiteralPath $valuesPath -Encoding utf8
+        if ($editFile) {
+            Write-LabEditableValues -Path $valuesPath -Variables $variables -Values $values
+            Write-Host "`nDeployment files created in $directory. Nothing was planned or deployed."
+            Write-Host "Edit $valuesPath, replace required null placeholders, and supply secrets through TF_VAR_* environment variables."
+            Write-Host 'Then run these commands manually (review the plan before applying):'
+            Write-Host "Set-Location -LiteralPath '$($directory.Replace("'", "''"))'"
+            Write-Host "`$env:ARM_SUBSCRIPTION_ID = '$($subscription.id)'"
+            Write-Host "`$env:ARM_TENANT_ID = '$($subscription.tenantId)'"
+            Write-Host 'terraform init'
+            Write-Host 'terraform plan'
+            Write-Host 'terraform apply'
+            return
+        }
+        Write-LabValues -Path $valuesPath -Values $values
+        if ($Resume -and (Test-Path -LiteralPath $legacyValuesPath -PathType Leaf)) {
+            Remove-Item -LiteralPath $legacyValuesPath
+        }
         Write-Host "Configuration saved in $directory. Passwords are not saved in the variable file."
         Write-Host "Retry or change settings with: .\scripts\New-Lab.ps1 -EnvironmentName $EnvironmentName -Resume"
         Invoke-LabDeployment $terraform $directory $EnvironmentName $subscription $variables $secrets -PreviewOnly:$PlanOnly

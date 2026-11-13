@@ -145,6 +145,14 @@ need different provider configurations.
 
 ## Deployment Lifecycle
 
+The `migrate-vmware` module creates its master site before its SQL/web child sites
+and appliance artifacts. An `azapi_update_resource` then sets the master site's
+complete `properties.sites` list, including the VMware site. Resource references
+order this update after site creation without a dependency cycle. The original
+master-site resource ignores subsequent changes to this field so the two
+resources do not compete over membership. The update owns the complete list;
+sites added outside Terraform are not preserved.
+
 Set `enable_replication = true` to enable A2A replication. Setting it to `false`
 removes replication resources. Disable replication before destroying an A2A lab.
 

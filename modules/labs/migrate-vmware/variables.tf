@@ -113,3 +113,17 @@ variable "migrate_project_name" {
   type        = string
 
 }
+
+### Project Appliance Variables ### 
+
+variable "project_appliance_name" {
+  description = "The name of the appliance created in your project"
+  type        = string
+  default     = "myAppliance"
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

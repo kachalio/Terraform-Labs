@@ -1,3 +1,10 @@
+###
+### This configuration deployes the following resources:
+### - Azure Migrate Project
+### - Azure Migrate Project Solutions (Assessment, Discovery, Migration, Data Replication)
+### - VMware Server Appliance Deployment
+###
+
 locals {
 
   tags = tomap({
@@ -10,20 +17,6 @@ data "azurerm_subscription" "primary" {}
 
 # My account details
 data "azurerm_client_config" "current" {}
-
-resource "random_string" "migration_random_string" {
-  length  = 4
-  special = false
-  upper   = false
-  numeric = true
-}
-
-resource "random_string" "blob_random_string" {
-  length  = 4
-  special = false
-  upper   = false
-  numeric = true
-}
 
 # Resource Group for project
 resource "azurerm_resource_group" "rg" {
@@ -59,7 +52,7 @@ module "source_network" {
 ### Migrate Project ###
 resource "azapi_resource" "migrate_project" {
   schema_validation_enabled = false
-  type                      = "Microsoft.Migrate/migrateProjects@2020-05-01"
+  type                      = "Microsoft.Migrate/MigrateProjects@2020-05-01"
   name                      = var.migrate_project_name
   parent_id                 = azurerm_resource_group.rg.id
   location                  = azurerm_resource_group.rg.location
@@ -78,7 +71,6 @@ resource "azapi_resource" "migrate_project" {
     "Migrate Project" = var.migrate_project_name
   })
 
-
 }
 
 
@@ -86,7 +78,7 @@ resource "azapi_resource" "migrate_project" {
 ### Migrate Project Solutions ###
 locals {
 
-  migrate_solutions_type        = "Microsoft.Migrate/migrateprojects/solutions"
+  migrate_solutions_type        = "Microsoft.Migrate/MigrateProjects/Solutions"
   migrate_solutions_api_version = "@2020-06-01-preview"
 
   migrate_solutions = {
@@ -129,7 +121,6 @@ locals {
       status  = "Inactive"
       details = null
     }
-
   }
 }
 
@@ -141,6 +132,11 @@ resource "azapi_resource" "migrate_server_solutions" {
   name                      = each.value.name
   parent_id                 = azapi_resource.migrate_project.id
   depends_on                = [module.source_network]
+  # Ignore changes to the body of the resource.  This is updated later, and those changes should be preserved.
+  lifecycle {
+    ignore_changes = [body]
+  }
+
 
   body = {
     properties = {
@@ -153,3 +149,32 @@ resource "azapi_resource" "migrate_server_solutions" {
   }
 }
 
+
+### VMware Server Appliance Deployment ###
+
+module "appliance" {
+  source = "../../vm_vmware_clone"
+
+  # count = var.deploy_appliance ? 1 : 0
+
+  vsphere_user            = var.vsphere_user
+  vsphere_password        = var.vsphere_password
+  vsphere_server          = var.vsphere_server
+  vsphere_datacenter      = var.vsphere_datacenter
+  vsphere_datastore       = var.vsphere_datastore
+  vsphere_compute_cluster = var.vsphere_compute_cluster
+  vsphere_network         = var.vsphere_network
+  vsphere_template        = var.vsphere_template
+  vsphere_resource_pool   = var.vsphere_resource_pool
+  vsphere_folder          = var.vsphere_folder
+  vm_name                 = var.vm_name
+  vm_hostname             = var.vm_hostname
+  vm_admin_password       = var.vm_admin_password
+  vm_num_cpus             = var.vm_num_cpus
+  vm_memory               = var.vm_memory
+  vm_firmware             = var.vm_firmware
+  vm_network_adapter_type = var.vm_network_adapter_type
+  vm_disk_size            = var.vm_disk_size
+  vm_thin_provisioned     = var.vm_thin_provisioned
+  vm_data_disks           = var.vm_data_disks
+}
