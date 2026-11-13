@@ -195,13 +195,9 @@ resource "azapi_resource" "master_site_sites" {
   name                      = "${local.name_prefix}${each.value.name}"
   parent_id                 = azapi_resource.master_site.id
   location                  = azapi_resource.migrate_project.location
-  # tags                      = { MigrateProject = azapi_resource.migrate_project.name }
   depends_on                = [azapi_resource.master_site]
-  # response_export_values    = ["*"]
-  lifecycle {
-    # The post-creation update owns site appliance properties after initial creation.
-    
-  }
+  locks = [azapi_resource.master_site.id] # This prevents requests to the Mastersite while it is in a non terminal state (HTTP 409 errors)
+
 
 
   body = {
