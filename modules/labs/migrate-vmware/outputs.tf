@@ -43,7 +43,3 @@ output "appliance_registration_key" {
     ]
   )
 }
-
-output "appliance_registration_info" {
-  value = azapi_resource_action.appliance_registration_info.output
-}

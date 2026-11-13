@@ -51,6 +51,8 @@ resource "vsphere_virtual_machine" "vm" {
   guest_id = data.vsphere_virtual_machine.template.guest_id
   firmware = var.vm_firmware
   folder   = var.vsphere_folder != null ? "${var.vsphere_datacenter}/vm/${var.vsphere_folder}" : null
+  
+  sync_time_with_host = false
 
   network_interface {
     network_id   = data.vsphere_network.network.id

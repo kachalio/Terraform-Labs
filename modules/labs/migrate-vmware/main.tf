@@ -52,7 +52,7 @@ module "source_network" {
 ### Migrate Project ###
 resource "azapi_resource" "migrate_project" {
   schema_validation_enabled = false
-  type                      = "Microsoft.Migrate/migrateProjects@2020-05-01"
+  type                      = "Microsoft.Migrate/MigrateProjects@2020-05-01"
   name                      = var.migrate_project_name
   parent_id                 = azurerm_resource_group.rg.id
   location                  = azurerm_resource_group.rg.location
@@ -78,7 +78,7 @@ resource "azapi_resource" "migrate_project" {
 ### Migrate Project Solutions ###
 locals {
 
-  migrate_solutions_type        = "Microsoft.Migrate/migrateprojects/solutions"
+  migrate_solutions_type        = "Microsoft.Migrate/MigrateProjects/Solutions"
   migrate_solutions_api_version = "@2020-06-01-preview"
 
   migrate_solutions = {

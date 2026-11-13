@@ -87,7 +87,11 @@ resource "azapi_resource" "vmwaresite" {
   depends_on                = [azurerm_key_vault.kv]
   location                  = azapi_resource.migrate_project.location
   tags                      = { MigrateProject = azapi_resource.migrate_project.name }
-  response_export_values    = ["*"]
+  response_export_values    = ["properties.serviceEndpoint"]
+
+  lifecycle {
+    ignore_changes = [body]
+  }
 
   body = {
     kind = "Migrate",
@@ -191,12 +195,12 @@ resource "azapi_resource" "master_site_sites" {
   name                      = "${local.name_prefix}${each.value.name}"
   parent_id                 = azapi_resource.master_site.id
   location                  = azapi_resource.migrate_project.location
-  tags                      = { MigrateProject = azapi_resource.migrate_project.name }
+  # tags                      = { MigrateProject = azapi_resource.migrate_project.name }
   depends_on                = [azapi_resource.master_site]
-  response_export_values    = ["*"]
+  # response_export_values    = ["*"]
   lifecycle {
     # The post-creation update owns site appliance properties after initial creation.
-    ignore_changes = [output]
+    
   }
 
 
@@ -210,7 +214,7 @@ resource "azapi_resource" "master_site_sites" {
             keyVaultId  = azurerm_key_vault.kv.id
             keyVaultUri = azurerm_key_vault.kv.vault_uri
           }
-          applianceName = var.project_appliance_name
+          applianceName = lower(var.project_appliance_name)
         }
       ]
     }
@@ -329,7 +333,7 @@ resource "azapi_resource" "link_project_to_data_replication_vault" {
   body = {
     properties = {
       notes    = ""
-      targetId = azapi_resource.datareplication_vault.id
+      targetId = "${azapi_resource.datareplication_vault.id}/"
     }
   }
 }
@@ -342,8 +346,8 @@ resource "azapi_resource_action" "appliance_registration_info" {
   action                 = "applianceRegistrationInfo"
   method                 = "POST"
   depends_on = [ azapi_resource.appliance_artifacts, azapi_resource.master_site_sites ]
+  response_export_values = ["properties.appendedNonce"]
 
-  response_export_values = ["*"]
   body = {
     applianceName = var.project_appliance_name
   }
@@ -408,11 +412,25 @@ locals {
   }
 }
 
+# resource "azapi_update_resource" "update_vmwaresite" {
+#   type        = azapi_resource.vmwaresite.type
+#   resource_id = azapi_resource.vmwaresite.id
+#   depends_on = [ azapi_resource.master_site ]
+#   body = {
+#     properties = {
+#       masterSiteId = azapi_resource.master_site.id
+#     }
+#   }
+# }
+
 resource "azapi_update_resource" "update_solution" {
   for_each    = azapi_resource.migrate_server_solutions
   type        = each.value.type
   resource_id = each.value.id
   depends_on = [ azapi_resource_action.appliance_registration_info ]
+  lifecycle {
+    ignore_changes = [body]
+  }
 
   body = {
     id   = each.value.id
